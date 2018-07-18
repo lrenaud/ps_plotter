@@ -1,60 +1,42 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from matplotlib import rcParams, pyplot as pp
 
-rcParams['figure.figsize'] = [10,7]
-default_window_position='+20+80'
+from matplotlib import rcParams, pyplot as pp
+import LPRDefaultPlotting
 
 import sys
 sys.path.append("./pySmithPlot")
 import smithplot
 from smithplot import SmithAxes
+
 ################################################################################
-# Operating Enviornment
-#####
-f0		= 28
-bw0		= 6.5 # assumed tuning range (GHz)
-bw_plt	= 1 # Plotting range (GHz)
-fbw		= bw0/f0 # fractional bandwidth
+# Define my helper functions.
+def dB20(volt_tf):
+	"""Describe signal gain of a transfer function in dB (i.e. 20log(x))"""
+	return 20*np.log10(np.abs(volt_tf))
+def ang(volt_tf):
+	"""Describe phase of a transfer function in degrees. Not unwrapped."""
+	return 180/np.pi*np.angle(volt_tf)
+def ang_unwrap(volt_tf):
+	"""Describe phase of a transfer function in degrees. With unwrapping."""
+	return 180/np.pi*np.unwrap(np.angle(volt_tf))
+def dB10(pwr_tf):
+	"""Describe power gain of a transfer function in dB (i.e. 10log(x))"""
+	return 10*np.log10(np.abs(pwr_tf))
 
-frequency_sweep_steps = 101
-gamma_sweep_steps = 15
 
-gamma = 1 - np.power(f0 / (f0 + bw0/2),2)
-gamma_limit_ratio = 0.99 # how close gamma can get to theoretical extreme
+################################################################################
+# Override the defaults for this script
+rcParams['figure.figsize'] = [10,7]
+default_window_position='+20+80'
 
-# Configuration Of Hardware
-#####
-q1_L	= 10
-q1_C	= 10
-l1		= 100e-3 # nH
-gm1		= 25e-3 # S
+################################################################################
+# Operating Enviornment (i.e. circuit parameters)
+from TankGlobals import *
 
-# Compute frequency sweep
-#####
-w0		= f0*2*np.pi
-fbw_plt	= bw_plt/f0
-delta	= np.linspace(-fbw_plt/2,fbw_plt/2,frequency_sweep_steps)
-w		= w0*(1+delta)
-f		= f0*(1+delta)
-jw		= 1j*w
-
-##################
-# Compute system 
-#####
-c1		= 1/(w0*w0*l1)
-g1_L	= 1 / (q1_L*w0*l1)
-g1_C	= w0 * c1 / q1_C
-g1		= g1_L + g1_C
-
-# Verify gamma is valid
-#####
-gamma_max = g1 * np.sqrt(l1/c1)
-if gamma > (gamma_limit_ratio * gamma_max):
-	print("==> WARN: Gamma to large, reset to %.3f (was %.3f) <==" % \
-		(gamma_max_cap*gamma_max, gamma))
-	gamma = gamma_max_cap*gamma_max
+################################################################################
+# Now generate the sweep of resonance tuning (gamma, and capacitance)
 
 gamma_swp = np.linspace(-gamma,gamma,gamma_sweep_steps);
 # compute correction factor for g1 that will produce common gain at f0
@@ -72,12 +54,6 @@ print('    Rp = %.3f Ohm' % (1/g1))
 print('    Max G1 boost %.2fmS (%.1f%% of gm1)' % \
 	(1e3*np.max(np.abs(g1_boost)), 100*np.max(g1_ratio)))
 
-def db(volt_tf):
-	return 20*np.log10(np.abs(volt_tf))
-def ang(volt_tf):
-	return 180/np.pi*np.angle(volt_tf)
-
-#y_tank=np.zeros((len(delta),len(gamma_swp)))
 h = pp.figure()
 mgr = pp.get_current_fig_manager()
 ax1 = h.add_subplot(2,2,1, projection='smith')
@@ -94,8 +70,8 @@ for itune,gamma_tune in enumerate(gamma_swp):
 	tf = gm1 / g1_tune * \
 		1j*(1+delta) / \
 		( 1j*(1+delta) + K*(1 - (1+gamma_tune)*np.power(1+delta,2)) )
-	ax2.plot(np.angle(tf), db(tf))
-	ax3.plot(f,db(tf))
+	ax2.plot(np.angle(tf), dB20(tf))
+	ax3.plot(f,dB20(tf))
 	ax4.plot(f,ang(tf))
 
 ################################################################################
@@ -105,7 +81,7 @@ ax2.set_title('Transfer Function')
 ax3.set_title('TF Gain')
 ax3.set_ylabel('Gain (dB)')
 ax4.set_title('TF Phase')
-ax3.set_ylabel('Phase (deg)')
+ax4.set_ylabel('Phase (deg)')
 for ax_T in [ax3, ax4]:
 	ax_T.grid()
 	ax_T.set_xlabel('Freq (GHz)')
