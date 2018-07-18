@@ -78,7 +78,7 @@ def ang(volt_tf):
 	return 180/np.pi*np.angle(volt_tf)
 
 #y_tank=np.zeros((len(delta),len(gamma_swp)))
-h1 = pp.figure()
+h = pp.figure()
 mgr = pp.get_current_fig_manager()
 ax1 = h.add_subplot(2,2,(1,3), projection='smith')
 ax3 = h.add_subplot(2,2,2)
