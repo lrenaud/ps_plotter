@@ -15,11 +15,11 @@ from smithplot import SmithAxes
 #####
 f0		= 28
 bw0		= 6.5 # assumed tuning range (GHz)
-bw_plt	= 0.5 # Plotting range (GHz)
+bw_plt	= 1 # Plotting range (GHz)
 fbw		= bw0/f0 # fractional bandwidth
 
 frequency_sweep_steps = 101
-gamma_sweep_steps = 11
+gamma_sweep_steps = 15
 
 gamma = 1 - np.power(f0 / (f0 + bw0/2),2)
 gamma_limit_ratio = 0.99 # how close gamma can get to theoretical extreme
@@ -80,7 +80,8 @@ def ang(volt_tf):
 #y_tank=np.zeros((len(delta),len(gamma_swp)))
 h = pp.figure()
 mgr = pp.get_current_fig_manager()
-ax1 = h.add_subplot(2,2,(1,3), projection='smith')
+ax1 = h.add_subplot(2,2,1, projection='smith')
+ax2 = h.add_subplot(2,2,3, projection='polar')
 ax3 = h.add_subplot(2,2,2)
 ax4 = h.add_subplot(2,2,4)
 for itune,gamma_tune in enumerate(gamma_swp):
@@ -93,11 +94,13 @@ for itune,gamma_tune in enumerate(gamma_swp):
 	tf = gm1 / g1_tune * \
 		1j*(1+delta) / \
 		( 1j*(1+delta) + K*(1 - (1+gamma_tune)*np.power(1+delta,2)) )
+	ax2.plot(np.angle(tf), db(tf))
 	ax3.plot(f,db(tf))
 	ax4.plot(f,ang(tf))
 
 ################################################################################
 ax1.set_title('Tank Impedance')
+ax2.set_title('Transfer Function')
 
 ax3.set_title('TF Gain')
 ax3.set_ylabel('Gain (dB)')
