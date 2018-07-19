@@ -6,11 +6,11 @@ import numpy as np
 #####
 f0		= 28
 bw0		= 6.5 # assumed tuning range (GHz)
-bw_plt	= 2 # Plotting range (GHz)
+bw_plt	= 3 # Plotting range (GHz)
 fbw		= bw0/f0 # fractional bandwidth
 
 frequency_sweep_steps = 101
-gamma_sweep_steps = 15
+gamma_sweep_steps = 16
 
 gamma = 1 - np.power(f0 / (f0 + bw0/2),2)
 gamma_limit_ratio = 0.99 # how close gamma can get to theoretical extreme
