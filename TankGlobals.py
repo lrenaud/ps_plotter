@@ -5,21 +5,22 @@ import numpy as np
 # Operating Enviornment
 #####
 f0		= 28
-bw0		= 6.5 # assumed tuning range (GHz)
-bw_plt	= 3 # Plotting range (GHz)
+bw0		= 8 # assumed tuning range (GHz)
+bw_plt	= 4 # Plotting range (GHz)
 fbw		= bw0/f0 # fractional bandwidth
 
 frequency_sweep_steps = 101
-gamma_sweep_steps = 16
+gamma_sweep_steps = 8
 
 gamma = 1 - np.power(f0 / (f0 + bw0/2),2)
 gamma_limit_ratio = 0.99 # how close gamma can get to theoretical extreme
+phase_limit_requested = (1-1/gamma_sweep_steps)*np.pi/2
 
 # Configuration Of Hardware
 #####
-q1_L	= 10
-q1_C	= 10
-l1		= 100e-3 # nH
+q1_L	= 20
+q1_C	= 7
+l1		= 180e-3 # nH
 gm1		= 25e-3 # S
 
 # Compute frequency sweep
@@ -44,6 +45,6 @@ g1		= g1_L + g1_C
 gamma_max = g1 * np.sqrt(l1/c1)
 if gamma > (gamma_limit_ratio * gamma_max):
 	print("==> WARN: Gamma to large, reset to %.3f (was %.3f) <==" % \
-		(gamma_max_cap*gamma_max, gamma))
-	gamma = gamma_max_cap*gamma_max
+		(gamma_limit_ratio * gamma_max, gamma))
+	gamma = gamma_limit_ratio * gamma_max
 
