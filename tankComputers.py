@@ -23,7 +23,20 @@ def wrap_rads(angles):
 	return np.mod(angles+np.pi,2*np.pi)-np.pi
 def atand(x):
 	return 180/np.pi*np.arctan(x)
-
+	
+def setLimitsTicks(ax, data, steps):
+	targs = np.array([1, 2, 4, 5, 10, 20, 30, 50, 60, 100, 250, 1000])
+	lo = np.min(data)
+	hi = np.max(data)
+	rg = hi-lo
+	step_size = rg / steps
+	step_size = np.select(targs >= step_size, targs)
+	lo = np.floor(lo / step_size)*step_size
+	hi = np.ceil(hi / step_size)*step_size
+	marks = np.arange(0,steps+1)*step_size + lo
+	ax.set_ylim((lo,hi))
+	ax.set_yticks(marks)
+	
 def rms_v_bw(err_sig, bandwidth_scale=1):
 	"""compute the rms vs bandwidth assuming a fixed center frequency"""
 	# First compute the error power

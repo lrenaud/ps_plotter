@@ -15,11 +15,14 @@ def g1_map_default(system):
 # Operating Enviornment
 #####
 class ampSystem:
+	f0		= 28
+	bw0		= 8
+	bw_plt	= 0.5
 	"""define global (hardware descriptive) variables for use in our system."""
 	def __init__(self, quiet=False):
-		self.f0		= 28 # design frequency (GHz)
-		self.bw0	= 8 # assumed extreme tuning range (GHz)
-		self.bw_plt	= 4 # Plotting range (GHz)
+		self.f0		= self.__class__.f0 # design frequency (GHz)
+		self.bw0	= self.__class__.bw0 # assumed extreme tuning range (GHz)
+		self.bw_plt	= self.__class__.bw_plt # Plotting range (GHz)
 
 		# Configuration Of Hardware
 		#####
@@ -46,9 +49,6 @@ class ampSystem:
 	@property
 	def fbw(self): # fractional bandwidth
 		return self.bw0/self.f0
-	@property
-	def phase_max(self):
-		return np.pi/2 * (1 - 1/self.gamma_len)
 
 	# Compute system 
 	#####
@@ -64,6 +64,9 @@ class ampSystem:
 	def Q1(self):
 		return np.sqrt(self.c1/self.l1)/self.g1
 
+	@property
+	def phase_max(self):
+		return np.pi/2 * (1 - 1/self.gamma_len)
 	@property
 	def gamma_len(self):
 		return self._gamma_steps
@@ -160,5 +163,58 @@ class ampSystem:
 			* 1j*(1+delta) \
 			/ (1j*(1+delta) + Q*(1-np.power(1+delta,2)*(1+gamma)))
 
+# Operating Enviornment
+#####
+class bufferSystem:
+	"""define global (hardware descriptive) variables for use in our system."""
+	def __init__(self, quiet=False):
+		self.f0		= ampSystem.f0 # design frequency (GHz)
+		self.bw0	= ampSystem.bw0 # assumed extreme tuning range (GHz)
+		self.bw_plt	= ampSystem.bw_plt # Plotting range (GHz)
 
+		# Configuration Of Hardware
+		#####
+		self.q2_L	= 25
+		self.q2_C	= 50
+		self.l2		= 140e-3 # nH
+		self.gm2	= 5e-3 # S
+
+		if not quiet:
+			## Report System Descrption
+			print('  L2 = %.3fpH, C2 = %.3ffF' % (1e3*self.l2, 1e6*self.c2))
+			print('    Rp = %.3f Ohm' % (1/self.g2))
+			print('    Q  = %.1f' % (self.Q2))
+
+	@property
+	def w0(self):
+		return self.f0*2*np.pi
+	@property
+	def fbw(self): # fractional bandwidth
+		return self.bw0/self.f0
+
+	# Compute system 
+	#####
+	@property
+	def c2(self):
+		return 1/(self.w0*self.w0*self.l2)
+	@property
+	def g2(self):
+		g2_L	= 1 / (self.q2_L*self.w0*self.l2)
+		g2_C	= self.w0 * self.c2 / self.q2_C
+		return g2_L + g2_C
+	@property
+	def Q2(self):
+		return np.sqrt(self.c2/self.l2)/self.g2
+
+	def compute_ref(self, f_dat):
+		y_tank = self.g2 + f_dat.jw*self.c2 + 1/(f_dat.jw * self.l2)
+		tf = self.__class__.tf_compute(f_dat.delta, self.g2, self.gm2, self.l2, self.c2)
+		return (y_tank, tf)
+
+	@classmethod
+	def tf_compute(cls, delta, gx, gm, l, c):
+		Q = np.sqrt(c/l)/gx
+		return gm / gx \
+			* 1j*(1+delta) \
+			/ (1j*(1+delta) + Q*(1-np.power(1+delta,2)))
 

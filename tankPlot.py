@@ -10,9 +10,11 @@ sys.path.append("./pySmithPlot")
 import smithplot
 from smithplot import SmithAxes
 
+plot_list = [4]
+
 ################################################################################
 # Override the defaults for this script
-rcParams['figure.figsize'] = [10,7]
+rcParams['figure.figsize'] = [3.4,2.2]
 default_window_position=['+20+80', '+120+80']
 
 ################################################################################
@@ -22,29 +24,31 @@ from FreqClass import FreqClass
 from tankComputers import *
 
 S=TankGlobals.ampSystem()
+B=TankGlobals.bufferSystem()
 f=FreqClass(501, S.f0, S.bw_plt)
 
 ################################################################################
 # We want a smooth transition out to alpha. So For now assume a squares
 # weighting out to the maximum alpha at the edges.
-gain_variation = -8*0	# dB
+# This gain variation function is the default function baked into the method.
+gain_variation = 0 # dB
 S.alpha_min = dB2Vlt(gain_variation)
 
-# compute correction factor for g1 that will produce common gain at f0
-# this is defined as the class default
-g1_swp = S.g1_swp
 # and compute how much of a negative gm this requres, and it's relative
 # proportion to the gm of the assumed main amplifier gm.
-g1_boost = (g1_swp - S.g1)
+g1_boost = (S.g1_swp - S.g1)
 g1_ratio = -g1_boost / S.gm1
 
 print('    Max G1 boost %.2fmS (%.1f%% of gm1)' % \
 	(1e3*np.max(np.abs(g1_boost)), 100*np.max(g1_ratio)))
 
 ################################################################################
-# Generate a reference implementation
+# Extract the computed tank conductanec, and the transfer functions.
 (y_tank, tf) = S.compute_block(f)
 (_, tf_ref) = S.compute_ref(f)
+
+# To produce full 360 dgree plots, double the two transfer functions by
+# considering inversion.
 # double to describe with perfect inversion stage
 tf = np.column_stack((tf,-tf))
 
@@ -63,66 +67,123 @@ y_tank = y_tank.T
 (bw_ang, rms_ang_swp)=rms_v_bw(tf_r_ang-tf_r_ang_ideal, S.bw_plt)
 (bw_mag, rms_gain_swp)=rms_v_bw(tf_r, S.bw_plt)
 
-################################################################################
+(y_buf, tf_buf) = B.compute_ref(f)
 
-h1 = pp.figure()
-h2 = pp.figure(figsize=(5,7))
-h3 = pp.figure(figsize=(5,7))
+################################################################################
+################################################################################
+################################################################################
 mgr = pp.get_current_fig_manager()
-################################################################################
-ax1 = h1.add_subplot(2,2,1, projection='smith')
-ax2 = h1.add_subplot(2,2,3, projection='polar')
-ax3 = h1.add_subplot(2,2,2)
-ax4 = h1.add_subplot(2,2,4)
-
-ax1.plot(y_tank, datatype=SmithAxes.Y_PARAMETER, marker="None")
-ax2.plot(np.angle(tf), dB20(tf))
-ax3.plot(f.hz,dB20(tf))
-ax4.plot(f.hz,ang_unwrap(tf))
 
 ################################################################################
-ax6 = h2.add_subplot(2,1,1)
-ax7 = h2.add_subplot(2,1,2)
-ax6.plot(f.hz,dB20(tf_r))
-ax7.plot(f.hz,ang_unwrap(tf_r.T).T)
+if 6 in plot_list:
+	h6 = pp.figure()
+	mgr = pp.get_current_fig_manager()
+	ax6 = [h6.subplots(1,1)]
+	ax6.append(ax6[0].twinx())
 
-ax8 = h3.add_subplot(2,1,1)
-ax9 = h3.add_subplot(2,1,2)
-ax8.plot(bw_mag,dB20(rms_gain_swp))
-ax9.plot(bw_ang,rms_ang_swp*180/np.pi)
+	axT=ax6[0]
+	axT.plot(f.hz,dB20(tf_buf))
+	axT.set_ylabel('Gain (dB)')
+	axT.set_title('Buffer Response')
+	setLimitsTicks(axT, dB20(tf_buf), 6)
+	axT=ax6[1]
+	axT.plot(f.hz,ang_unwrap(tf_buf))
+	axT.set_ylabel('Phase (deg)')
+	setLimitsTicks(axT, ang_unwrap(tf_buf), 6)
 
-ax1.set_title('Tank Impedance')
-ax2.set_title('Transfer Function')
 
-ax3.set_title('TF Gain')
-ax3.set_ylabel('Gain (dB)')
-ax4.set_title('TF Phase')
-ax4.set_ylabel('Phase (deg)')
-ax6.set_title('TF Relative Gain')
-ax6.set_ylabel('Relative Gain (dB)')
-ax7.set_title('TF Relative Phase')
-ax7.set_ylabel('Relative Phase (deg)')
-for ax_T in [ax3, ax4, ax6, ax7]:
-	ax_T.grid()
-	ax_T.set_xlabel('Freq (GHz)')
-	ax_T.set_xlim(f.hz_range)
-
-ax8.set_title('RMS Gain Error')
-ax8.set_ylabel('RMS Gain Error (dB)')
-ax9.set_title('RMS Phase Error')
-ax9.set_ylabel('RMS Phase Error (deg)')
-for ax_T in [ax8, ax9]:
-	ax_T.grid()
-	ax_T.set_xlim((0,S.bw_plt))
-	ax_T.set_xlabel('Bandwidth (GHz)')
-
+	for i,axT in enumerate(ax6):
+		if i==0: axT.grid()
+		axT.set_xlim(f.hz_range)
+		axT.set_xlabel('Frequency (GHz)')
+		c_color = LPRDefaultPlotting.COLOR_CYCLE_LIST[i]
+		axT.lines[0].set_color(c_color)
+		axT.yaxis.label.set_color(c_color)
+		axT.tick_params('y', colors=c_color)
+	h6.tight_layout()
+	mgr.window.geometry(default_window_position[0])
+	h6.show()
 
 ################################################################################
-h1.tight_layout()
-h2.tight_layout()
-h3.tight_layout()
-mgr.window.geometry(default_window_position[0])
-h1.show()
-mgr.window.geometry(default_window_position[1])
-h2.show()
-h3.show()
+if 1 in plot_list:
+	h1 = [pp.figure() for x in range(2)]
+	ax1 = [hT.add_subplot(1,1,1) for hT in h1]
+	ax1[0].plot(f.hz,dB20(tf))
+	ax1[1].plot(f.hz,ang_unwrap(tf))
+
+	ax1[0].set_title('TF Gain')
+	ax1[0].set_ylabel('Gain (dB)')
+	ax1[1].set_title('TF Phase')
+	ax1[1].set_ylabel('Phase (deg)')
+	
+	for axT in ax1:
+		axT.grid()
+		axT.set_xlabel('Freq (GHz)')
+		axT.set_xlim(f.hz_range)
+	
+	[hT.tight_layout() for hT in h1]
+	mgr.window.geometry(default_window_position[0])
+	[hT.show() for hT in h1]
+
+if 4 in plot_list:
+	h4 = [pp.figure(figsize=(3.4,3.4)) for x in range(2)]
+	ax4 = []
+	ax4.append(h4[0].add_subplot(1,1,1, projection='smith'))
+	ax4.append(h4[1].add_subplot(1,1,1, projection='polar'))
+
+	ax4[0].plot(y_tank, datatype=SmithAxes.Y_PARAMETER, marker="None")
+	ax4[1].plot(np.angle(tf), dB20(tf))
+
+	ax4[0].set_title('Tank Impedance')
+	ax4[1].set_title('Transfer Function')
+
+	old_pos = ax4[1].title.get_position()
+	ax4[1].title.set_position((old_pos[0], 1.1))
+	h4[1].tight_layout()
+	#[hT.tight_layout() for hT in h4]
+	mgr.window.geometry(default_window_position[0])
+	[hT.show() for hT in h4]
+
+################################################################################
+if 2 in plot_list:
+	h2 = [pp.figure() for x in range(2)]
+	
+	ax2 = [hT.add_subplot(1,1,1) for hT in h2]
+	ax2[0].plot(f.hz,dB20(tf_r))
+	setLimitsTicks(ax2[0], dB20(tf_r), 6)
+	ax2[1].plot(f.hz,ang_unwrap(tf_r.T).T)
+	setLimitsTicks(ax2[1], ang_unwrap(tf_r.T), 6)
+	
+	ax2[0].set_title('Relative Gain')
+	ax2[0].set_ylabel('Gain (dB)')
+	ax2[1].set_title('Relative Phase')
+	ax2[1].set_ylabel('Phase (deg)')
+
+	for axT in ax2:
+		axT.grid()
+		axT.set_xlabel('Freq (GHz)')
+		axT.set_xlim(f.hz_range)
+	[hT.tight_layout() for hT in h2]
+	mgr.window.geometry(default_window_position[1])
+	[hT.show() for hT in h2]
+
+################################################################################
+if 3 in plot_list:
+	h3 = [pp.figure() for x in range(2)]
+	
+	ax3 = [hT.add_subplot(1,1,1) for hT in h3]
+	ax3[0].plot(bw_mag,dB20(rms_gain_swp))
+	ax3[1].plot(bw_ang,rms_ang_swp*180/np.pi)
+	
+	ax3[0].set_title('RMS Gain Error')
+	ax3[0].set_ylabel('RMS Gain Error (dB)')
+	ax3[1].set_title('RMS Phase Error')
+	ax3[1].set_ylabel('RMS Phase Error (deg)')
+	for axT in ax3:
+		axT.grid()
+		axT.set_xlim((0,S.bw_plt))
+		axT.set_xlabel('Bandwidth (GHz)')
+
+	[hT.tight_layout() for hT in h3]
+	[hT.show() for hT in h3]
+
