@@ -1,50 +1,164 @@
 #!/usr/bin/env python3
 import numpy as np
+import sys
 
 ################################################################################
+# BEWARE, FOR BEYOND THIS POINT THERE BE DRAGONS! THIS IS ONLY FOR EASE OF
+# GENERATING ACADEMIC PUBLICATIONS AND FIGURES, NEVER DO THIS SHIT!
+################################################################################
+
+def g1_map_default(system):
+	# compute correction factor for g1 that will produce common gain at f0
+	g1_swp = system.g1 * np.sin(np.pi/2-system.phase_swp) / system.alpha_swp
+	return g1_swp
+
 # Operating Enviornment
 #####
-f0		= 28
-bw0		= 8 # assumed tuning range (GHz)
-bw_plt	= 4 # Plotting range (GHz)
-fbw		= bw0/f0 # fractional bandwidth
+class ampSystem:
+	"""define global (hardware descriptive) variables for use in our system."""
+	def __init__(self, quiet=False):
+		self.f0		= 28 # design frequency (GHz)
+		self.bw0	= 8 # assumed extreme tuning range (GHz)
+		self.bw_plt	= 4 # Plotting range (GHz)
 
-frequency_sweep_steps = 101
-gamma_sweep_steps = 8
+		# Configuration Of Hardware
+		#####
+		self.q1_L	= 25
+		self.q1_C	= 8
+		self.l1		= 140e-3 # nH
+		self.gm1	= 25e-3 # S
 
-gamma = 1 - np.power(f0 / (f0 + bw0/2),2)
-gamma_limit_ratio = 0.99 # how close gamma can get to theoretical extreme
-phase_limit_requested = (1-1/gamma_sweep_steps)*np.pi/2
+		self._gamma_steps=8
+		self._gamma_cap_ratio = 0.997
+		self.alpha_min=1
+		if not quiet:
+			## Report System Descrption
+			print('  L1 = %.3fpH, C1 = %.3ffF' % (1e3*self.l1, 1e6*self.c1))
+			print('    Rp = %.3f Ohm' % (1/self.g1))
+			print('    Q  = %.1f' % (self.Q1))
+		self._gamma_warn = False
+		
+		self._g1_map_function = g1_map_default
+	
+	@property
+	def w0(self):
+		return self.f0*2*np.pi
+	@property
+	def fbw(self): # fractional bandwidth
+		return self.bw0/self.f0
+	@property
+	def phase_max(self):
+		return np.pi/2 * (1 - 1/self.gamma_len)
 
-# Configuration Of Hardware
-#####
-q1_L	= 20
-q1_C	= 7
-l1		= 180e-3 # nH
-gm1		= 25e-3 # S
+	# Compute system 
+	#####
+	@property
+	def c1(self):
+		return 1/(self.w0*self.w0*self.l1)
+	@property
+	def g1(self):
+		g1_L	= 1 / (self.q1_L*self.w0*self.l1)
+		g1_C	= self.w0 * self.c1 / self.q1_C
+		return g1_L + g1_C
+	@property
+	def Q1(self):
+		return np.sqrt(self.c1/self.l1)/self.g1
 
-# Compute frequency sweep
-#####
-w0		= f0*2*np.pi
-fbw_plt	= bw_plt/f0
-delta	= np.linspace(-fbw_plt/2,fbw_plt/2,frequency_sweep_steps)
-w		= w0*(1+delta)
-f		= f0*(1+delta)
-jw		= 1j*w
+	@property
+	def gamma_len(self):
+		return self._gamma_steps
 
-##################
-# Compute system 
-#####
-c1		= 1/(w0*w0*l1)
-g1_L	= 1 / (q1_L*w0*l1)
-g1_C	= w0 * c1 / q1_C
-g1		= g1_L + g1_C
+	@property
+	def gamma(self):
+		gamma = 1 - np.power(self.f0 / (self.f0 + self.bw0/2),2)
+		phase_limit_requested = (1-1/self.gamma_len)*np.pi/2
 
-# Verify gamma is valid
-#####
-gamma_max = g1 * np.sqrt(l1/c1)
-if gamma > (gamma_limit_ratio * gamma_max):
-	print("==> WARN: Gamma to large, reset to %.3f (was %.3f) <==" % \
-		(gamma_limit_ratio * gamma_max, gamma))
-	gamma = gamma_limit_ratio * gamma_max
+		# Verify gamma is valid
+		#####
+		gamma_max = 1/(self.alpha_min*self.Q1)
+		if gamma > (self._gamma_cap_ratio * gamma_max):
+			if not self._gamma_warn:
+				self._gamma_warn = True
+				print("==> WARN: Gamma to large, reset to %.1f%% (was %.1f%%) <==" % \
+					(100*self._gamma_cap_ratio * gamma_max, 100*gamma))
+			gamma = self._gamma_cap_ratio * gamma_max
+		return gamma
+
+	@property
+	def alpha_swp(self):
+		range_partial = np.ceil(self.gamma_len/2)
+		lhs = np.linspace(np.sqrt(self.alpha_min),1, range_partial)
+		rhs = np.flip(lhs,0)
+		swp = np.concatenate((lhs,rhs[1:])) if np.mod(self.gamma_len,2) == 1 \
+												else np.concatenate((lhs,rhs))
+		return np.power(swp,2)
+
+	@property
+	def gamma_swp(self):
+		return np.cos(np.pi/2-self.phase_swp) / self.Q1 / self.alpha_swp
+	@property
+	def phase_swp(self):
+		#def phaseSweepGenerate(g1, gamma, c, l, phase_extreme, phase_steps):
+		# Linear PHASE gamma spacing
+		# First compute the most extreme phase given the extreme gamma
+		# if gamma is tuned to the limit, and we want to match the gain performance,
+		# then this is the required tuned g1 value.
+		gamma = self.gamma
+		g1_limit = np.sqrt(np.power(self.g1,2) - np.power(gamma,2)*self.c1/self.l1)
+		# This implies a Q in that particular setting
+		Q_limit = self.Q1*self.g1/g1_limit
+		# given this !, I compute the delta phase at that point.
+		phase_limit = np.pi/2 - np.arctan(1/(Q_limit*gamma))
+
+		phase_swp = np.linspace(-1,1,self.gamma_len) * self.phase_max
+
+		if phase_limit < self.phase_max:
+			print(	"==> ERROR: Phase Beyond bounds. Some states will be ignored")
+			print(	"           %.3f requested\n"
+					"           %.3f hardware limit" % \
+				(180/np.pi*self.phase_max, 180/np.pi*abs(phase_limit)))
+			print(	"    To increase tuning range, gamma must rise or native Q must rise")
+			phase_swp = np.where(phase_swp > phase_limit, phase_swp, np.NaN)
+
+		# This gives us our equal phase spacing points
+		return phase_swp
+	
+	@property
+	def c1_swp(self):
+		return self.c1 * (1 + self.gamma_swp)
+		
+	def set_g1_swp(self, g1_swp_function):
+		self._g1_map_function = g1_swp_function
+	
+	@property
+	def g1_swp(self):
+		return self._g1_map_function(self)
+	
+	def compute_block(self, f_dat):
+		g1_swp = self.g1_swp
+		c1_swp = self.c1_swp
+		y_tank	= np.zeros((self.gamma_len,f_dat.steps), dtype=complex)
+		tf		= np.zeros((self.gamma_len,f_dat.steps), dtype=complex)
+		for itune,gamma_tune in enumerate(self.gamma_swp):
+			c1_tune = c1_swp[itune]
+			g1_tune = g1_swp[itune]
+			y_tank[itune,:] = g1_tune + f_dat.jw*c1_tune + 1/(f_dat.jw * self.l1)
+			tf[itune,:] = self.__class__.tf_compute(f_dat.delta, gamma_tune, g1_tune, self.gm1, self.l1, self.c1)
+
+		tf = tf.T
+		return (y_tank, tf)
+
+	def compute_ref(self, f_dat):
+		y_tank = self.g1 + f_dat.jw*self.c1 + 1/(f_dat.jw * self.l1)
+		tf = self.__class__.tf_compute(f_dat.delta, 0, self.g1, self.gm1, self.l1, self.c1)
+		return (y_tank, tf)
+	
+	@classmethod
+	def tf_compute(cls, delta, gamma, gx, gm, l, c):
+		Q = np.sqrt(c/l)/gx
+		return gm / gx \
+			* 1j*(1+delta) \
+			/ (1j*(1+delta) + Q*(1-np.power(1+delta,2)*(1+gamma)))
+
+
 

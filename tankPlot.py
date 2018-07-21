@@ -11,101 +11,63 @@ import smithplot
 from smithplot import SmithAxes
 
 ################################################################################
-# Define my helper functions.
-def dB20(volt_tf):
-	"""Describe signal gain of a transfer function in dB (i.e. 20log(x))"""
-	return 20*np.log10(np.abs(volt_tf))
-def ang(volt_tf):
-	"""Describe phase of a transfer function in degrees. Not unwrapped."""
-	return 180/np.pi*np.angle(volt_tf)
-def ang_unwrap(volt_tf):
-	"""Describe phase of a transfer function in degrees. With unwrapping."""
-	return 180/np.pi*np.unwrap(np.angle(volt_tf))
-def dB10(pwr_tf):
-	"""Describe power gain of a transfer function in dB (i.e. 10log(x))"""
-	return 10*np.log10(np.abs(pwr_tf))
-	
-def atan(x):
-	return 180/np.pi*np.arctan(x)
-
-
-################################################################################
 # Override the defaults for this script
 rcParams['figure.figsize'] = [10,7]
 default_window_position=['+20+80', '+120+80']
 
 ################################################################################
 # Operating Enviornment (i.e. circuit parameters)
-from TankGlobals import *
+import TankGlobals
+from FreqClass import FreqClass
+from tankComputers import *
+
+S=TankGlobals.ampSystem()
+f=FreqClass(501, S.f0, S.bw_plt)
 
 ################################################################################
-# Now generate the sweep of resonance tuning (gamma, and capacitance)
-
-# Linear based gamma spacing
-#gamma_swp = np.linspace(-gamma,gamma,gamma_sweep_steps)
-
-# Linear PHASE gamma spacing
-# First compute the most extreme phase given the extreme gamma
-g1_limit = np.sqrt( g1*g1 - (gamma*gamma) * c1/l1  )
-K_limit = np.sqrt(c1/l1)*1/g1_limit
-phase_limit = np.mod(np.pi/2 - np.arctan( -1/K_limit * 1/gamma ),np.pi) - np.pi
-
-if abs(phase_limit) < phase_limit_requested:
-	print("==> WARN: Phase Beyond bounds, leaving at limits. <==")
-	print("==> %.3f requested, but hardware limit is %.3f <==" % \
-		(180/np.pi*phase_limit_requested, 180/np.pi*abs(phase_limit)))
-	sys.exit(-1)
-else:
-	phase_limit = phase_limit_requested
-
-
-# This gives us our equal phase spacing points
-phase_swp = np.linspace(-1,1,gamma_sweep_steps) * phase_limit
-# Then use this to compute the gamma steps to produce arbitrary phase given
-# our perfect gain constraint.
-gamma_swp = np.sign(phase_swp)/np.sqrt(np.power(np.tan(np.pi/2 - phase_swp),2)+1) * g1 / np.sqrt(c1/l1)
+# We want a smooth transition out to alpha. So For now assume a squares
+# weighting out to the maximum alpha at the edges.
+gain_variation = -8*0	# dB
+S.alpha_min = dB2Vlt(gain_variation)
 
 # compute correction factor for g1 that will produce common gain at f0
-g1_swp = np.sqrt( g1*g1 - (gamma_swp*gamma_swp) * c1/l1  )
+# this is defined as the class default
+g1_swp = S.g1_swp
 # and compute how much of a negative gm this requres, and it's relative
 # proportion to the gm of the assumed main amplifier gm.
-g1_boost = (g1_swp - g1)
-g1_ratio = -g1_boost / gm1
+g1_boost = (g1_swp - S.g1)
+g1_ratio = -g1_boost / S.gm1
 
-c1_swp = c1 * (1 + gamma_swp)
-
-## Report System Descrption
-print('  L1 = %.3fpH, C1 = %.3ffF' % (1e3*l1, 1e6*c1))
-print('    Rp = %.3f Ohm' % (1/g1))
 print('    Max G1 boost %.2fmS (%.1f%% of gm1)' % \
 	(1e3*np.max(np.abs(g1_boost)), 100*np.max(g1_ratio)))
 
-y_tank = np.zeros((len(gamma_swp),len(f)), dtype=complex)
-tf = np.zeros((len(gamma_swp),len(f)), dtype=complex)
-for itune,gamma_tune in enumerate(gamma_swp):
-	c1_tune = c1_swp[itune]
-	g1_tune = g1_swp[itune]
-	K = np.sqrt(c1/l1)/g1_tune
-	y_tank_tmp = g1_tune + jw*c1_tune + 1/(jw * l1)
-	y_tank[itune,:] = y_tank_tmp
-	tf_tmp = gm1 / g1_tune * \
-		1j*(1+delta) / \
-		( 1j*(1+delta) + K*(1 - (1+gamma_tune)*np.power(1+delta,2)) )
-	tf[itune,:] = tf_tmp
-
-tf = tf.T
+################################################################################
+# Generate a reference implementation
+(y_tank, tf) = S.compute_block(f)
+(_, tf_ref) = S.compute_ref(f)
 # double to describe with perfect inversion stage
 tf = np.column_stack((tf,-tf))
 
-ref_index = int(gamma_swp.shape[0]/2)
-tf_r = tf / (tf[:,ref_index]*np.ones((tf.shape[1],1))).T
-y_tank = y_tank.T
+# compute the relative transfer function thus giving us flat phase, and
+# flat (ideally) gain response if our system perfectly matches the reference
+tf_r = tf / (tf_ref*np.ones((tf.shape[1],1))).T
 
-print(ang(tf[f==28,:]))
+# We will also do a direct angle comparison
+tf_r_ang_ideal = wrap_rads(np.concatenate((-S.phase_swp, -np.pi - S.phase_swp)))
+tf_r_ang = np.angle(tf_r)
+tf_r_ang_rms = np.sqrt(np.mean(np.power(tf_r_ang-tf_r_ang_ideal,2),0))
+
+y_tank = y_tank.T
+################################################################################
+# Compute RMS phase error relative to ideal reference across plotting bandwidth
+(bw_ang, rms_ang_swp)=rms_v_bw(tf_r_ang-tf_r_ang_ideal, S.bw_plt)
+(bw_mag, rms_gain_swp)=rms_v_bw(tf_r, S.bw_plt)
+
 ################################################################################
 
 h1 = pp.figure()
 h2 = pp.figure(figsize=(5,7))
+h3 = pp.figure(figsize=(5,7))
 mgr = pp.get_current_fig_manager()
 ################################################################################
 ax1 = h1.add_subplot(2,2,1, projection='smith')
@@ -115,14 +77,19 @@ ax4 = h1.add_subplot(2,2,4)
 
 ax1.plot(y_tank, datatype=SmithAxes.Y_PARAMETER, marker="None")
 ax2.plot(np.angle(tf), dB20(tf))
-ax3.plot(f,dB20(tf))
-ax4.plot(f,ang_unwrap(tf))
+ax3.plot(f.hz,dB20(tf))
+ax4.plot(f.hz,ang_unwrap(tf))
 
 ################################################################################
-ax8 = h2.add_subplot(2,1,1)
-ax9 = h2.add_subplot(2,1,2)
-ax8.plot(f,dB20(tf_r))
-ax9.plot(f,ang_unwrap(tf_r.T).T)
+ax6 = h2.add_subplot(2,1,1)
+ax7 = h2.add_subplot(2,1,2)
+ax6.plot(f.hz,dB20(tf_r))
+ax7.plot(f.hz,ang_unwrap(tf_r.T).T)
+
+ax8 = h3.add_subplot(2,1,1)
+ax9 = h3.add_subplot(2,1,2)
+ax8.plot(bw_mag,dB20(rms_gain_swp))
+ax9.plot(bw_ang,rms_ang_swp*180/np.pi)
 
 ax1.set_title('Tank Impedance')
 ax2.set_title('Transfer Function')
@@ -131,20 +98,31 @@ ax3.set_title('TF Gain')
 ax3.set_ylabel('Gain (dB)')
 ax4.set_title('TF Phase')
 ax4.set_ylabel('Phase (deg)')
-ax8.set_title('TF Relative Gain')
-ax8.set_ylabel('Relative Gain (dB)')
-ax9.set_title('TF Relative Phase')
-ax9.set_ylabel('Relative Phase (deg)')
-for ax_T in [ax3, ax4, ax8, ax9]:
+ax6.set_title('TF Relative Gain')
+ax6.set_ylabel('Relative Gain (dB)')
+ax7.set_title('TF Relative Phase')
+ax7.set_ylabel('Relative Phase (deg)')
+for ax_T in [ax3, ax4, ax6, ax7]:
 	ax_T.grid()
 	ax_T.set_xlabel('Freq (GHz)')
-	ax_T.set_xlim(( np.min(f), np.max(f) ))
+	ax_T.set_xlim(f.hz_range)
+
+ax8.set_title('RMS Gain Error')
+ax8.set_ylabel('RMS Gain Error (dB)')
+ax9.set_title('RMS Phase Error')
+ax9.set_ylabel('RMS Phase Error (deg)')
+for ax_T in [ax8, ax9]:
+	ax_T.grid()
+	ax_T.set_xlim((0,S.bw_plt))
+	ax_T.set_xlabel('Bandwidth (GHz)')
 
 
 ################################################################################
 h1.tight_layout()
 h2.tight_layout()
+h3.tight_layout()
 mgr.window.geometry(default_window_position[0])
 h1.show()
 mgr.window.geometry(default_window_position[1])
 h2.show()
+h3.show()
