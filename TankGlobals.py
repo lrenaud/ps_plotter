@@ -11,13 +11,16 @@ def g1_map_default(system):
 	# compute correction factor for g1 that will produce common gain at f0
 	g1_swp = system.g1 * np.sin(np.pi/2-system.phase_swp) / system.alpha_swp
 	return g1_swp
+	
+def g1_map_flat(system):
+	return system.g1*np.ones(system.phase_swp.shape)
 
 # Operating Enviornment
 #####
 class ampSystem:
 	f0		= 28
 	bw0		= 8
-	bw_plt	= 0.5
+	bw_plt	= 3
 	"""define global (hardware descriptive) variables for use in our system."""
 	def __init__(self, quiet=False):
 		self.f0		= self.__class__.f0 # design frequency (GHz)

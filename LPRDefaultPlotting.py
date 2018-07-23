@@ -37,3 +37,6 @@ rcParams['axes.prop_cycle'] = (cycler('linestyle',['-','--'])*cycler(color=COLOR
 		
 for tri in COLOR_CYCLE_LIST:
 	color = '0x' + ''.join([ "%02x" % int(255*x) for x in tri])
+
+figures_directory='figures'
+

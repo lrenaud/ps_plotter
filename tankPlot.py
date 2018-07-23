@@ -1,16 +1,51 @@
 #!/usr/bin/env python3
 
 import numpy as np
+import matplotlib
+import argparse
+import os
+import code
 
+################################################################################
+args_parser = argparse.ArgumentParser()
+args_parser.add_argument('-n', type=int, default=1,\
+	help='plot testing number')
+args_parser.add_argument('--save','-s', action='store_true',\
+	help='save to files')
+args_parser.add_argument('--raster','-r', action='store_true',\
+	help='save as raster')
+args_parser.add_argument('--debug','-d', action='store_true',\
+	help='hold for debugging')
+args_parser.add_argument('--headless','-q', action='store_true',\
+	help='Remain neadless even if we aren\'t saving files.')
+args = args_parser.parse_args()
+
+#exit()
+
+HEADLESS = not 'DISPLAY' in os.environ.keys()
+if args.headless: HEADLESS = True	# Overide Manually if request
+if HEADLESS: matplotlib.use('Agg');
+
+################################################################################
 from matplotlib import rcParams, pyplot as pp
 import LPRDefaultPlotting
 
+figdir = LPRDefaultPlotting.figures_directory
+if args.save: os.makedirs(figdir, exist_ok=True)
+
 import sys
+
 sys.path.append("./pySmithPlot")
 import smithplot
 from smithplot import SmithAxes
 
-plot_list = [4]
+plot_list = [args.n]
+
+if args.raster:
+	args.save = True
+	fig_ext = 'png'
+else:
+	fig_ext = 'pdf'
 
 ################################################################################
 # Override the defaults for this script
@@ -22,10 +57,18 @@ default_window_position=['+20+80', '+120+80']
 import TankGlobals
 from FreqClass import FreqClass
 from tankComputers import *
+freq_pts = 501
 
 S=TankGlobals.ampSystem()
 B=TankGlobals.bufferSystem()
-f=FreqClass(501, S.f0, S.bw_plt)
+if plot_list[0] in [4, 5]:
+	S.bw_plt = 0.5
+	B.bw_plt = S.bw_plt
+	freq_pts = 51
+if plot_list[0] == 5:
+	S.set_g1_swp(TankGlobals.g1_map_flat)
+
+f=FreqClass(freq_pts, S.f0, S.bw_plt)
 
 ################################################################################
 # We want a smooth transition out to alpha. So For now assume a squares
@@ -101,8 +144,13 @@ if 6 in plot_list:
 		axT.yaxis.label.set_color(c_color)
 		axT.tick_params('y', colors=c_color)
 	h6.tight_layout()
-	mgr.window.geometry(default_window_position[0])
-	h6.show()
+	if args.save:
+		h6.savefig('%s/%s.%s' % (figdir, 'NA-6.0', fig_ext))
+	if HEADLESS:
+		pp.close()
+	else:
+		mgr.window.geometry(default_window_position[0])
+		h6.show()
 
 ################################################################################
 if 1 in plot_list:
@@ -122,8 +170,14 @@ if 1 in plot_list:
 		axT.set_xlim(f.hz_range)
 	
 	[hT.tight_layout() for hT in h1]
-	mgr.window.geometry(default_window_position[0])
-	[hT.show() for hT in h1]
+	if args.save:
+		h1[0].savefig('%s/%s.%s' % (figdir, 'NA-1.0', fig_ext))
+		h1[1].savefig('%s/%s.%s' % (figdir, 'NA-1.1', fig_ext))
+	if HEADLESS:
+		pp.close()
+	else:
+		mgr.window.geometry(default_window_position[0])
+		[hT.show() for hT in h1]
 
 if 4 in plot_list:
 	h4 = [pp.figure(figsize=(3.4,3.4)) for x in range(2)]
@@ -141,9 +195,40 @@ if 4 in plot_list:
 	ax4[1].title.set_position((old_pos[0], 1.1))
 	h4[1].tight_layout()
 	#[hT.tight_layout() for hT in h4]
-	mgr.window.geometry(default_window_position[0])
-	[hT.show() for hT in h4]
+	if args.save:
+		h4[0].savefig('%s/%s.%s' % (figdir, 'ideal-smith_tank_impedance', fig_ext))
+		h4[1].savefig('%s/%s.%s' % (figdir, 'ideal-polar_gain_plot', fig_ext))
+	if HEADLESS:
+		pp.close()
+	else:
+		mgr.window.geometry(default_window_position[0])
+		[hT.show() for hT in h4]
 
+if 5 in plot_list:
+	h5 = [pp.figure(figsize=(3.4,3.4)) for x in range(2)]
+	ax5 = []
+	ax5.append(h5[0].add_subplot(1,1,1, projection='smith'))
+	ax5.append(h5[1].add_subplot(1,1,1, projection='polar'))
+
+	ax5[0].plot(y_tank, datatype=SmithAxes.Y_PARAMETER, marker="None")
+	ax5[1].plot(np.angle(tf), dB20(tf))
+
+	ax5[0].set_title('Tank Impedance')
+	ax5[1].set_title('Transfer Function')
+
+	old_pos = ax5[1].title.get_position()
+	ax5[1].title.set_position((old_pos[0], 1.1))
+	h5[1].tight_layout()
+	#[hT.tight_layout() for hT in h5]
+	if args.save:
+		h5[0].savefig('%s/%s.%s' % (figdir, 'ideal-flat_g1-smith_tank_impedance', fig_ext))
+		h5[1].savefig('%s/%s.%s' % (figdir, 'ideal-flat_g1-polar_gain_plot', fig_ext))
+	if HEADLESS:
+		pp.close()
+	else:
+		mgr.window.geometry(default_window_position[0])
+		[hT.show() for hT in h5]
+	
 ################################################################################
 if 2 in plot_list:
 	h2 = [pp.figure() for x in range(2)]
@@ -164,8 +249,14 @@ if 2 in plot_list:
 		axT.set_xlabel('Freq (GHz)')
 		axT.set_xlim(f.hz_range)
 	[hT.tight_layout() for hT in h2]
-	mgr.window.geometry(default_window_position[1])
-	[hT.show() for hT in h2]
+	if args.save:
+		h2[0].savefig('%s/%s.%s' % (figdir, 'NA-2.0', fig_ext))
+		h2[1].savefig('%s/%s.%s' % (figdir, 'NA-2.1', fig_ext))
+	if HEADLESS:
+		pp.close()
+	else:
+		mgr.window.geometry(default_window_position[0])
+		[hT.show() for hT in h2]
 
 ################################################################################
 if 3 in plot_list:
@@ -185,5 +276,20 @@ if 3 in plot_list:
 		axT.set_xlabel('Bandwidth (GHz)')
 
 	[hT.tight_layout() for hT in h3]
-	[hT.show() for hT in h3]
+	if args.save:
+		h3[0].savefig('%s/%s.%s' % (figdir, 'NA-3.0', fig_ext))
+		h3[1].savefig('%s/%s.%s' % (figdir, 'NA-3.1', fig_ext))
+	if HEADLESS:
+		pp.close()
+	else:
+		mgr.window.geometry(default_window_position[0])
+		[hT.show() for hT in h3]
 
+if args.debug:
+	print("")
+	print("#"*80)
+	print("# Finished execution.")
+	print("# Debugging Mode active.")
+	print("# Falling back to an interactive prompt.")
+	print("#"*80)
+	code.interact(local=dict(globals(), **locals()))
