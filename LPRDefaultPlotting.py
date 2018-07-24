@@ -6,6 +6,7 @@
 # enviornment.
 ################################################################################
 
+import matplotlib
 from matplotlib import rcParams, pyplot as pp
 from cycler import cycler
 
@@ -32,11 +33,54 @@ COLOR_CYCLE_LIST =  [
 #		[0,      1,      1],
 #		[1,      0,      0],
 #		[0,      1,      0]]
-		
+
 rcParams['axes.prop_cycle'] = (cycler('linestyle',['-','--'])*cycler(color=COLOR_CYCLE_LIST))
-		
+
 for tri in COLOR_CYCLE_LIST:
 	color = '0x' + ''.join([ "%02x" % int(255*x) for x in tri])
 
 figures_directory='figures'
 
+def figAnnotateCorner(hfig, msg, corner=1, clear=True):
+	if clear:
+		figAnnotateClear(hfig)
+	if corner in [1,2]:
+		loc_x = 0.01
+		algn_h = 'left'
+	else:
+		loc_x = 0.99
+		algn_h = 'right'
+	if corner in [1,4]:
+		loc_y = 0.01
+		algn_v = 'bottom'
+	else:
+		loc_y = 0.99
+		algn_v = 'top'
+	ax = hfig.get_axes()[0]
+	hfig.text(loc_x, loc_y, msg, transform=ax.transAxes,
+		va=algn_v, ha=algn_h)
+
+def axAnnotateCorner(ha, msg, corner=1):
+	if corner in [1,2]:
+		loc_x = 0.01
+		algn_h = 'left'
+	else:
+		loc_x = 0.99
+		algn_h = 'right'
+	if corner in [1,4]:
+		loc_y = 0.01
+		algn_v = 'bottom'
+	else:
+		loc_y = 0.99
+		algn_v = 'top'
+	#ax = ha.get_axes()[0]
+	ha.text(loc_x, loc_y, msg, transform=ha.transAxes,
+		va=algn_v, ha=algn_h)
+
+def figAnnotateClear(hobj):
+	if type(hobj == matplotlib.figure.Figure):
+		hfig = hobj
+	children = hfig.get_children()
+	for child in children:
+		if type(child) == matplotlib.text.Text:
+			child.remove()

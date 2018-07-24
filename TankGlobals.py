@@ -11,9 +11,15 @@ def g1_map_default(system):
 	# compute correction factor for g1 that will produce common gain at f0
 	g1_swp = system.g1 * np.sin(np.pi/2-system.phase_swp) / system.alpha_swp
 	return g1_swp
-	
+
 def g1_map_flat(system):
 	return system.g1*np.ones(system.phase_swp.shape)
+
+def gamma_map_default(system):
+	return np.cos(np.pi/2-system.phase_swp) / system.Q1 / system.alpha_swp
+
+def gamma_map_flat(system):
+	return np.tan(np.pi/2-system.phase_swp) / system.Q1 / system.alpha_swp
 
 # Operating Enviornment
 #####
@@ -43,9 +49,10 @@ class ampSystem:
 			print('    Rp = %.3f Ohm' % (1/self.g1))
 			print('    Q  = %.1f' % (self.Q1))
 		self._gamma_warn = False
-		
+
 		self._g1_map_function = g1_map_default
-	
+		self._gamma_map_function = gamma_map_default
+
 	@property
 	def w0(self):
 		return self.f0*2*np.pi
@@ -53,7 +60,7 @@ class ampSystem:
 	def fbw(self): # fractional bandwidth
 		return self.bw0/self.f0
 
-	# Compute system 
+	# Compute system
 	#####
 	@property
 	def c1(self):
@@ -81,7 +88,7 @@ class ampSystem:
 
 		# Verify gamma is valid
 		#####
-		gamma_max = 1/(self.alpha_min*self.Q1)
+		gamma_max = 1/(np.min((1, self.alpha_min))*self.Q1)
 		if gamma > (self._gamma_cap_ratio * gamma_max):
 			if not self._gamma_warn:
 				self._gamma_warn = True
@@ -99,9 +106,12 @@ class ampSystem:
 												else np.concatenate((lhs,rhs))
 		return np.power(swp,2)
 
+	def set_gamma_swp(self, gamma_swp_function):
+		self._gamma_map_function = gamma_swp_function
 	@property
 	def gamma_swp(self):
-		return np.cos(np.pi/2-self.phase_swp) / self.Q1 / self.alpha_swp
+		return self._gamma_map_function(self)
+
 	@property
 	def phase_swp(self):
 		#def phaseSweepGenerate(g1, gamma, c, l, phase_extreme, phase_steps):
@@ -128,18 +138,18 @@ class ampSystem:
 
 		# This gives us our equal phase spacing points
 		return phase_swp
-	
+
 	@property
 	def c1_swp(self):
 		return self.c1 * (1 + self.gamma_swp)
-		
+
 	def set_g1_swp(self, g1_swp_function):
 		self._g1_map_function = g1_swp_function
-	
+
 	@property
 	def g1_swp(self):
 		return self._g1_map_function(self)
-	
+
 	def compute_block(self, f_dat):
 		g1_swp = self.g1_swp
 		c1_swp = self.c1_swp
@@ -158,7 +168,7 @@ class ampSystem:
 		y_tank = self.g1 + f_dat.jw*self.c1 + 1/(f_dat.jw * self.l1)
 		tf = self.__class__.tf_compute(f_dat.delta, 0, self.g1, self.gm1, self.l1, self.c1)
 		return (y_tank, tf)
-	
+
 	@classmethod
 	def tf_compute(cls, delta, gamma, gx, gm, l, c):
 		Q = np.sqrt(c/l)/gx
@@ -195,7 +205,7 @@ class bufferSystem:
 	def fbw(self): # fractional bandwidth
 		return self.bw0/self.f0
 
-	# Compute system 
+	# Compute system
 	#####
 	@property
 	def c2(self):
@@ -220,4 +230,3 @@ class bufferSystem:
 		return gm / gx \
 			* 1j*(1+delta) \
 			/ (1j*(1+delta) + Q*(1-np.power(1+delta,2)))
-

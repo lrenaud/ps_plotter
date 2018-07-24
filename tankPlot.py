@@ -5,26 +5,26 @@ import matplotlib
 import argparse
 import os
 import code
-
+import pdb
 ################################################################################
 args_parser = argparse.ArgumentParser()
-args_parser.add_argument('-n', type=int, default=1,\
+args_parser.add_argument('-n', type=int, default=1,
 	help='plot testing number')
-args_parser.add_argument('--save','-s', action='store_true',\
+args_parser.add_argument('--save','-s', action='store_true',
 	help='save to files')
-args_parser.add_argument('--raster','-r', action='store_true',\
+args_parser.add_argument('--raster','-r', action='store_true',
 	help='save as raster')
-args_parser.add_argument('--debug','-d', action='store_true',\
+args_parser.add_argument('--debug','-d', action='store_true',
 	help='hold for debugging')
-args_parser.add_argument('--headless','-q', action='store_true',\
+args_parser.add_argument('--headless','-q', action='store_true',
 	help='Remain neadless even if we aren\'t saving files.')
 args = args_parser.parse_args()
 
 #exit()
 
 HEADLESS = not 'DISPLAY' in os.environ.keys()
-if args.headless: HEADLESS = True	# Overide Manually if request
-if HEADLESS: matplotlib.use('Agg');
+if args.headless: HEADLESS = True	# Override Manually if request
+if HEADLESS: matplotlib.use('Agg')
 
 ################################################################################
 from matplotlib import rcParams, pyplot as pp
@@ -49,7 +49,8 @@ else:
 
 ################################################################################
 # Override the defaults for this script
-rcParams['figure.figsize'] = [3.4,2.2]
+figScaleSize = 1.0 if args.save else 1.6
+rcParams['figure.figsize'] = [3.4*figScaleSize,2.25*figScaleSize]
 default_window_position=['+20+80', '+120+80']
 
 ################################################################################
@@ -61,12 +62,20 @@ freq_pts = 501
 
 S=TankGlobals.ampSystem()
 B=TankGlobals.bufferSystem()
+
+S.q1_L = 15
+if plot_list[0] in [11, 12, 13, 14]:
+	gain_variation = +4 # dB
+else:
+	gain_variation = 0 # dB
+
 if plot_list[0] in [4, 5]:
 	S.bw_plt = 0.5
 	B.bw_plt = S.bw_plt
 	freq_pts = 51
 if plot_list[0] == 5:
 	S.set_g1_swp(TankGlobals.g1_map_flat)
+	S.set_gamma_swp(TankGlobals.gamma_map_flat)
 
 f=FreqClass(freq_pts, S.f0, S.bw_plt)
 
@@ -74,7 +83,7 @@ f=FreqClass(freq_pts, S.f0, S.bw_plt)
 # We want a smooth transition out to alpha. So For now assume a squares
 # weighting out to the maximum alpha at the edges.
 # This gain variation function is the default function baked into the method.
-gain_variation = 0 # dB
+#gain_variation = 0 # dB
 S.alpha_min = dB2Vlt(gain_variation)
 
 # and compute how much of a negative gm this requres, and it's relative
@@ -115,7 +124,7 @@ y_tank = y_tank.T
 ################################################################################
 ################################################################################
 ################################################################################
-mgr = pp.get_current_fig_manager()
+#mgr = pp.get_current_fig_manager()
 
 ################################################################################
 if 6 in plot_list:
@@ -134,7 +143,6 @@ if 6 in plot_list:
 	axT.set_ylabel('Phase (deg)')
 	setLimitsTicks(axT, ang_unwrap(tf_buf), 6)
 
-
 	for i,axT in enumerate(ax6):
 		if i==0: axT.grid()
 		axT.set_xlim(f.hz_range)
@@ -145,15 +153,15 @@ if 6 in plot_list:
 		axT.tick_params('y', colors=c_color)
 	h6.tight_layout()
 	if args.save:
-		h6.savefig('%s/%s.%s' % (figdir, 'NA-6.0', fig_ext))
+			h6.savefig('%s/%s.%s' % (figdir, 'NA-06.0', fig_ext))
 	if HEADLESS:
 		pp.close()
 	else:
-		mgr.window.geometry(default_window_position[0])
+		#mgr.window.geometry(default_window_position[0])
 		h6.show()
 
 ################################################################################
-if 1 in plot_list:
+if 1 in plot_list or 11 in plot_list:
 	h1 = [pp.figure() for x in range(2)]
 	ax1 = [hT.add_subplot(1,1,1) for hT in h1]
 	ax1[0].plot(f.hz,dB20(tf))
@@ -163,23 +171,32 @@ if 1 in plot_list:
 	ax1[0].set_ylabel('Gain (dB)')
 	ax1[1].set_title('TF Phase')
 	ax1[1].set_ylabel('Phase (deg)')
-	
+
 	for axT in ax1:
 		axT.grid()
 		axT.set_xlabel('Freq (GHz)')
 		axT.set_xlim(f.hz_range)
-	
+
 	[hT.tight_layout() for hT in h1]
+	if 11 in plot_list:
+		for hT in h1:
+			LPRDefaultPlotting.figAnnotateCorner(hT,
+				'%g dB gain variation' % (gain_variation))
+
 	if args.save:
-		h1[0].savefig('%s/%s.%s' % (figdir, 'NA-1.0', fig_ext))
-		h1[1].savefig('%s/%s.%s' % (figdir, 'NA-1.1', fig_ext))
+		if 11 in plot_list:
+			h1[0].savefig('%s/%s.%s' % (figdir, 'NA-11.0', fig_ext))
+			h1[1].savefig('%s/%s.%s' % (figdir, 'NA-11.1', fig_ext))
+		else:
+			h1[0].savefig('%s/%s.%s' % (figdir, 'NA-01.0', fig_ext))
+			h1[1].savefig('%s/%s.%s' % (figdir, 'NA-01.1', fig_ext))
 	if HEADLESS:
 		pp.close()
 	else:
-		mgr.window.geometry(default_window_position[0])
+		#mgr.window.geometry(default_window_position[0])
 		[hT.show() for hT in h1]
 
-if 4 in plot_list:
+if 4 in plot_list or 14 in plot_list:
 	h4 = [pp.figure(figsize=(3.4,3.4)) for x in range(2)]
 	ax4 = []
 	ax4.append(h4[0].add_subplot(1,1,1, projection='smith'))
@@ -194,14 +211,27 @@ if 4 in plot_list:
 	old_pos = ax4[1].title.get_position()
 	ax4[1].title.set_position((old_pos[0], 1.1))
 	h4[1].tight_layout()
+
+	if 14 in plot_list:
+		for hT in h4:
+			LPRDefaultPlotting.figAnnotateCorner(hT,
+				'%g dB gain variation' % (gain_variation))
 	#[hT.tight_layout() for hT in h4]
 	if args.save:
-		h4[0].savefig('%s/%s.%s' % (figdir, 'ideal-smith_tank_impedance', fig_ext))
-		h4[1].savefig('%s/%s.%s' % (figdir, 'ideal-polar_gain_plot', fig_ext))
+		if 14 in plot_list:
+			h4[0].savefig('%s/%s.%s' % (figdir,
+				'ideal-smith_tank_impedance_wgv', fig_ext))
+			h4[1].savefig('%s/%s.%s' % (figdir,
+				'ideal-polar_gain_plot_wgv', fig_ext))
+		else:
+			h4[0].savefig('%s/%s.%s' % (figdir,
+				'ideal-smith_tank_impedance', fig_ext))
+			h4[1].savefig('%s/%s.%s' % (figdir,
+				'ideal-polar_gain_plot', fig_ext))
 	if HEADLESS:
 		pp.close()
 	else:
-		mgr.window.geometry(default_window_position[0])
+		#mgr.window.geometry(default_window_position[0])
 		[hT.show() for hT in h4]
 
 if 5 in plot_list:
@@ -221,24 +251,26 @@ if 5 in plot_list:
 	h5[1].tight_layout()
 	#[hT.tight_layout() for hT in h5]
 	if args.save:
-		h5[0].savefig('%s/%s.%s' % (figdir, 'ideal-flat_g1-smith_tank_impedance', fig_ext))
-		h5[1].savefig('%s/%s.%s' % (figdir, 'ideal-flat_g1-polar_gain_plot', fig_ext))
+		h5[0].savefig('%s/%s.%s' % (figdir,
+			'ideal-flat_g1-smith_tank_impedance', fig_ext))
+		h5[1].savefig('%s/%s.%s' % (figdir,
+			'ideal-flat_g1-polar_gain_plot', fig_ext))
 	if HEADLESS:
 		pp.close()
 	else:
-		mgr.window.geometry(default_window_position[0])
+		#mgr.window.geometry(default_window_position[0])
 		[hT.show() for hT in h5]
-	
+
 ################################################################################
-if 2 in plot_list:
+if 2 in plot_list or 12 in plot_list:
 	h2 = [pp.figure() for x in range(2)]
-	
+
 	ax2 = [hT.add_subplot(1,1,1) for hT in h2]
 	ax2[0].plot(f.hz,dB20(tf_r))
 	setLimitsTicks(ax2[0], dB20(tf_r), 6)
 	ax2[1].plot(f.hz,ang_unwrap(tf_r.T).T)
 	setLimitsTicks(ax2[1], ang_unwrap(tf_r.T), 6)
-	
+
 	ax2[0].set_title('Relative Gain')
 	ax2[0].set_ylabel('Gain (dB)')
 	ax2[1].set_title('Relative Phase')
@@ -249,40 +281,60 @@ if 2 in plot_list:
 		axT.set_xlabel('Freq (GHz)')
 		axT.set_xlim(f.hz_range)
 	[hT.tight_layout() for hT in h2]
+	if 12 in plot_list:
+		for hT in h2:
+			LPRDefaultPlotting.figAnnotateCorner(hT,
+				'%g dB gain variation' % (gain_variation))
+
 	if args.save:
-		h2[0].savefig('%s/%s.%s' % (figdir, 'NA-2.0', fig_ext))
-		h2[1].savefig('%s/%s.%s' % (figdir, 'NA-2.1', fig_ext))
+		if 12 in plot_list:
+			h2[0].savefig('%s/%s.%s' % (figdir, 'NA-12.0', fig_ext))
+			h2[1].savefig('%s/%s.%s' % (figdir, 'NA-12.1', fig_ext))
+		else:
+			h2[0].savefig('%s/%s.%s' % (figdir, 'NA-02.0', fig_ext))
+			h2[1].savefig('%s/%s.%s' % (figdir, 'NA-02.1', fig_ext))
 	if HEADLESS:
 		pp.close()
 	else:
-		mgr.window.geometry(default_window_position[0])
+		#mgr.window.geometry(default_window_position[0])
 		[hT.show() for hT in h2]
 
 ################################################################################
-if 3 in plot_list:
+if 3 in plot_list or 13 in plot_list:
 	h3 = [pp.figure() for x in range(2)]
-	
+
 	ax3 = [hT.add_subplot(1,1,1) for hT in h3]
 	ax3[0].plot(bw_mag,dB20(rms_gain_swp))
 	ax3[1].plot(bw_ang,rms_ang_swp*180/np.pi)
-	
+
 	ax3[0].set_title('RMS Gain Error')
 	ax3[0].set_ylabel('RMS Gain Error (dB)')
 	ax3[1].set_title('RMS Phase Error')
 	ax3[1].set_ylabel('RMS Phase Error (deg)')
+
 	for axT in ax3:
 		axT.grid()
 		axT.set_xlim((0,S.bw_plt))
 		axT.set_xlabel('Bandwidth (GHz)')
 
 	[hT.tight_layout() for hT in h3]
+	[hT.tight_layout() for hT in h3]
+	if 13 in plot_list:
+		for hT in h3:
+			LPRDefaultPlotting.figAnnotateCorner(hT,
+				'%g dB gain variation' % (gain_variation))
+
 	if args.save:
-		h3[0].savefig('%s/%s.%s' % (figdir, 'NA-3.0', fig_ext))
-		h3[1].savefig('%s/%s.%s' % (figdir, 'NA-3.1', fig_ext))
+		if 13 in plot_list:
+			h3[0].savefig('%s/%s.%s' % (figdir, 'NA-13.0', fig_ext))
+			h3[1].savefig('%s/%s.%s' % (figdir, 'NA-13.1', fig_ext))
+		else:
+			h3[0].savefig('%s/%s.%s' % (figdir, 'NA-03.0', fig_ext))
+			h3[1].savefig('%s/%s.%s' % (figdir, 'NA-03.1', fig_ext))
 	if HEADLESS:
 		pp.close()
 	else:
-		mgr.window.geometry(default_window_position[0])
+		#mgr.window.geometry(default_window_position[0])
 		[hT.show() for hT in h3]
 
 if args.debug:
