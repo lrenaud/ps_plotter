@@ -3,6 +3,13 @@
 MAX_JOBS=4
 
 echo "Starting:"
+# First run brute force misc jobs
+(
+	echo "  start odd jobs.... →"
+	./comparisonPlots.py --subplot -n 3 -sq 1>/dev/null
+	echo "    止 end odd jobs."
+) &
+
 for n in 5 6; do
 	while [[ $MAX_JOBS -le $(jobs -l | wc -l) ]]; do sleep 0.1; done
 	(

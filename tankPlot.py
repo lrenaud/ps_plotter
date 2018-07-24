@@ -68,7 +68,6 @@ from tankComputers import *
 freq_pts = 501
 
 S=TankGlobals.ampSystem()
-Sgv=TankGlobals.ampSystem()
 B=TankGlobals.bufferSystem()
 
 S.q1_L = 15

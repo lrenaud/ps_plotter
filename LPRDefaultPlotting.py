@@ -72,37 +72,37 @@ for tri in COLOR_CYCLE_LIST:
 
 figures_directory='figures'
 
-def figAnnotateCorner(hfig, msg, corner=1, clear=True):
+def figAnnotateCorner(hfig, msg, corner=1, ratio=0.01, clear=True):
 	if clear:
 		figAnnotateClear(hfig)
 	if corner in [1,2]:
-		loc_x = 0.01
+		loc_x = ratio
 		algn_h = 'left'
 	else:
-		loc_x = 0.99
+		loc_x = 1-ratio
 		algn_h = 'right'
 	if corner in [1,4]:
-		loc_y = 0.01
+		loc_y = ratio
 		algn_v = 'bottom'
 	else:
-		loc_y = 0.99
+		loc_y = 1-ratio
 		algn_v = 'top'
 	ax = hfig.get_axes()[0]
 	hfig.text(loc_x, loc_y, msg, transform=ax.transAxes,
 		va=algn_v, ha=algn_h)
 
-def axAnnotateCorner(ha, msg, corner=1):
+def axAnnotateCorner(ha, msg, corner=1, ratio=0.01):
 	if corner in [1,2]:
-		loc_x = 0.01
+		loc_x = ratio
 		algn_h = 'left'
 	else:
-		loc_x = 0.99
+		loc_x = 1-ratio
 		algn_h = 'right'
 	if corner in [1,4]:
-		loc_y = 0.01
+		loc_y = ratio
 		algn_v = 'bottom'
 	else:
-		loc_y = 0.99
+		loc_y = 1-ratio
 		algn_v = 'top'
 	#ax = ha.get_axes()[0]
 	ha.text(loc_x, loc_y, msg, transform=ha.transAxes,
