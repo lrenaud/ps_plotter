@@ -16,6 +16,8 @@ args_parser.add_argument('--raster','-r', action='store_true',
 	help='save as raster')
 args_parser.add_argument('--debug','-d', action='store_true',
 	help='hold for debugging')
+args_parser.add_argument('--subplot', action='store_true',
+	help='use subplots when available')
 args_parser.add_argument('--headless','-q', action='store_true',
 	help='Remain neadless even if we aren\'t saving files.')
 args = args_parser.parse_args()
@@ -50,7 +52,10 @@ else:
 ################################################################################
 # Override the defaults for this script
 figScaleSize = 1.0 if args.save else 1.6
-rcParams['figure.figsize'] = [3.4*figScaleSize,2.25*figScaleSize]
+if args.subplot:
+	rcParams['figure.figsize'] = [3.4*figScaleSize,4*figScaleSize]
+else:
+	rcParams['figure.figsize'] = [3.4*figScaleSize,2.25*figScaleSize]
 default_window_position=['+20+80', '+120+80']
 
 ################################################################################
@@ -69,7 +74,7 @@ if plot_list[0] in [11, 12, 13, 14]:
 else:
 	gain_variation = 0 # dB
 
-if plot_list[0] in [4, 5]:
+if plot_list[0] in [14, 4, 5]:
 	S.bw_plt = 0.5
 	B.bw_plt = S.bw_plt
 	freq_pts = 51
@@ -162,8 +167,13 @@ if 6 in plot_list:
 
 ################################################################################
 if 1 in plot_list or 11 in plot_list:
-	h1 = [pp.figure() for x in range(2)]
-	ax1 = [hT.add_subplot(1,1,1) for hT in h1]
+	if not args.subplot:
+		h1 = [pp.figure() for x in range(2)]
+		ax1 = [hT.add_subplot(1,1,1) for hT in h1]
+	else:
+		h1 = [pp.figure() for x in range(1)]
+		ax1 = h1[0].subplots(2,1)
+
 	ax1[0].plot(f.hz,dB20(tf))
 	ax1[1].plot(f.hz,ang_unwrap(tf))
 
@@ -185,11 +195,23 @@ if 1 in plot_list or 11 in plot_list:
 
 	if args.save:
 		if 11 in plot_list:
-			h1[0].savefig('%s/%s.%s' % (figdir, 'NA-11.0', fig_ext))
-			h1[1].savefig('%s/%s.%s' % (figdir, 'NA-11.1', fig_ext))
+			if args.subplot:
+				h1[0].savefig('%s/%s.%s' % (figdir,
+					'01d-ideal-AbsGainPhase-wgv', fig_ext))
+			else:
+				h1[0].savefig('%s/%s.%s' % (figdir,
+					'010-AbsGain-wgv', fig_ext))
+				h1[1].savefig('%s/%s.%s' % (figdir,
+					'011-AbsPhase-wgv', fig_ext))
 		else:
-			h1[0].savefig('%s/%s.%s' % (figdir, 'NA-01.0', fig_ext))
-			h1[1].savefig('%s/%s.%s' % (figdir, 'NA-01.1', fig_ext))
+			if args.subplot:
+				h1[0].savefig('%s/%s.%s' % (figdir,
+					'01d-ideal-AbsGainPhase', fig_ext))
+			else:
+				h1[0].savefig('%s/%s.%s' % (figdir,
+					'010-AbsGain', fig_ext))
+				h1[1].savefig('%s/%s.%s' % (figdir,
+					'011-AbsPhase', fig_ext))
 	if HEADLESS:
 		pp.close()
 	else:
@@ -220,14 +242,14 @@ if 4 in plot_list or 14 in plot_list:
 	if args.save:
 		if 14 in plot_list:
 			h4[0].savefig('%s/%s.%s' % (figdir,
-				'ideal-smith_tank_impedance_wgv', fig_ext))
+				'040-ideal-smith_tank_impedance-wgv', fig_ext))
 			h4[1].savefig('%s/%s.%s' % (figdir,
-				'ideal-polar_gain_plot_wgv', fig_ext))
+				'041-ideal-polar_gain_plot-wgv', fig_ext))
 		else:
 			h4[0].savefig('%s/%s.%s' % (figdir,
-				'ideal-smith_tank_impedance', fig_ext))
+				'040-ideal-smith_tank_impedance', fig_ext))
 			h4[1].savefig('%s/%s.%s' % (figdir,
-				'ideal-polar_gain_plot', fig_ext))
+				'041-ideal-polar_gain_plot', fig_ext))
 	if HEADLESS:
 		pp.close()
 	else:
@@ -252,9 +274,9 @@ if 5 in plot_list:
 	#[hT.tight_layout() for hT in h5]
 	if args.save:
 		h5[0].savefig('%s/%s.%s' % (figdir,
-			'ideal-flat_g1-smith_tank_impedance', fig_ext))
+			'050-ideal-flat_g1-smith_tank_impedance', fig_ext))
 		h5[1].savefig('%s/%s.%s' % (figdir,
-			'ideal-flat_g1-polar_gain_plot', fig_ext))
+			'050-ideal-flat_g1-polar_gain_plot', fig_ext))
 	if HEADLESS:
 		pp.close()
 	else:
@@ -263,9 +285,13 @@ if 5 in plot_list:
 
 ################################################################################
 if 2 in plot_list or 12 in plot_list:
-	h2 = [pp.figure() for x in range(2)]
+	if not args.subplot:
+		h2 = [pp.figure() for x in range(2)]
+		ax2 = [hT.add_subplot(1,1,1) for hT in h2]
+	else:
+		h2 = [pp.figure() for x in range(1)]
+		ax2 = h2[0].subplots(2,1)
 
-	ax2 = [hT.add_subplot(1,1,1) for hT in h2]
 	ax2[0].plot(f.hz,dB20(tf_r))
 	setLimitsTicks(ax2[0], dB20(tf_r), 6)
 	ax2[1].plot(f.hz,ang_unwrap(tf_r.T).T)
@@ -288,11 +314,23 @@ if 2 in plot_list or 12 in plot_list:
 
 	if args.save:
 		if 12 in plot_list:
-			h2[0].savefig('%s/%s.%s' % (figdir, 'NA-12.0', fig_ext))
-			h2[1].savefig('%s/%s.%s' % (figdir, 'NA-12.1', fig_ext))
+			if not args.subplot:
+				h2[0].savefig('%s/%s.%s' % (figdir,
+					'020-TF_RelativeGainPhase-wgv', fig_ext))
+				h2[1].savefig('%s/%s.%s' % (figdir,
+					'021-TF_RelativePhase-wgv', fig_ext))
+			else:
+				h2[0].savefig('%s/%s.%s' % (figdir,
+					'02d-TF_RelativeGain-gv', fig_ext))
 		else:
-			h2[0].savefig('%s/%s.%s' % (figdir, 'NA-02.0', fig_ext))
-			h2[1].savefig('%s/%s.%s' % (figdir, 'NA-02.1', fig_ext))
+			if not args.subplot:
+				h2[0].savefig('%s/%s.%s' % (figdir,
+					'020-TF_RelativeGainPhase', fig_ext))
+				h2[1].savefig('%s/%s.%s' % (figdir,
+					'021-TF_RelativePhase', fig_ext))
+			else:
+				h2[0].savefig('%s/%s.%s' % (figdir,
+					'02d-TF_RelativeGain', fig_ext))
 	if HEADLESS:
 		pp.close()
 	else:
@@ -301,9 +339,13 @@ if 2 in plot_list or 12 in plot_list:
 
 ################################################################################
 if 3 in plot_list or 13 in plot_list:
-	h3 = [pp.figure() for x in range(2)]
+	if not args.subplot:
+		h3 = [pp.figure() for x in range(2)]
+		ax3 = [hT.add_subplot(1,1,1) for hT in h3]
+	else:
+		h3 = [pp.figure() for x in range(1)]
+		ax3 = h3[0].subplots(2,1)
 
-	ax3 = [hT.add_subplot(1,1,1) for hT in h3]
 	ax3[0].plot(bw_mag,dB20(rms_gain_swp))
 	ax3[1].plot(bw_ang,rms_ang_swp*180/np.pi)
 
@@ -326,11 +368,17 @@ if 3 in plot_list or 13 in plot_list:
 
 	if args.save:
 		if 13 in plot_list:
-			h3[0].savefig('%s/%s.%s' % (figdir, 'NA-13.0', fig_ext))
-			h3[1].savefig('%s/%s.%s' % (figdir, 'NA-13.1', fig_ext))
+			if not args.subplot:
+				h3[0].savefig('%s/%s.%s' % (figdir, 'NA-13.0', fig_ext))
+				h3[1].savefig('%s/%s.%s' % (figdir, 'NA-13.1', fig_ext))
+			else:
+				h3[0].savefig('%s/%s.%s' % (figdir, 'NA-13.0', fig_ext))
 		else:
-			h3[0].savefig('%s/%s.%s' % (figdir, 'NA-03.0', fig_ext))
-			h3[1].savefig('%s/%s.%s' % (figdir, 'NA-03.1', fig_ext))
+			if not args.subplot:
+				h3[0].savefig('%s/%s.%s' % (figdir, 'NA-03.0', fig_ext))
+				h3[1].savefig('%s/%s.%s' % (figdir, 'NA-03.1', fig_ext))
+			else:
+				h3[0].savefig('%s/%s.%s' % (figdir, 'NA-03.d', fig_ext))
 	if HEADLESS:
 		pp.close()
 	else:

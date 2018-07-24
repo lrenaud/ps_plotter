@@ -10,10 +10,11 @@ import matplotlib
 from matplotlib import rcParams, pyplot as pp
 from cycler import cycler
 
-rcParams['grid.alpha'] = 0.7
+rcParams['grid.alpha'] = 0.5
 rcParams['grid.linestyle'] = ':'
 rcParams['font.family'] = ['serif']
-rcParams['font.size'] = 8.0
+rcParams['font.size'] = 6.5
+rcParams['mathtext.fontset'] = 'dejavuserif'
 rcParams['mathtext.fontset'] = 'dejavuserif'
 rcParams['mathtext.it'] = 'serif:italic'
 rcParams['mathtext.bf'] = 'serif:bold'
