@@ -40,6 +40,8 @@ import sys
 sys.path.append("./pySmithPlot")
 import smithplot
 from smithplot import SmithAxes
+SmithAxes.update_scParams(axes_normalize=False,
+ 	grid_minor_fancy_threshold=50, axes_radius=0.5)
 
 plot_list = [args.n]
 
@@ -66,6 +68,7 @@ from tankComputers import *
 freq_pts = 501
 
 S=TankGlobals.ampSystem()
+Sgv=TankGlobals.ampSystem()
 B=TankGlobals.bufferSystem()
 
 S.q1_L = 15
@@ -219,7 +222,7 @@ if 1 in plot_list or 11 in plot_list:
 		[hT.show() for hT in h1]
 
 if 4 in plot_list or 14 in plot_list:
-	h4 = [pp.figure(figsize=(3.4,3.4)) for x in range(2)]
+	h4 = [pp.figure(figsize=(3.4,3)) for x in range(2)]
 	ax4 = []
 	ax4.append(h4[0].add_subplot(1,1,1, projection='smith'))
 	ax4.append(h4[1].add_subplot(1,1,1, projection='polar'))
@@ -229,6 +232,13 @@ if 4 in plot_list or 14 in plot_list:
 
 	ax4[0].set_title('Tank Impedance')
 	ax4[1].set_title('Transfer Function')
+
+	# Adjust placement of smith plot
+	old_pos = ax4[0].title.get_position()
+	ax4[0].title.set_position((old_pos[0], 1.06))
+	p = ax4[0].get_position()
+	p.set_points([[0, 0.07],[1, 0.86]])
+	ax4[0].set_position(p)
 
 	old_pos = ax4[1].title.get_position()
 	ax4[1].title.set_position((old_pos[0], 1.1))

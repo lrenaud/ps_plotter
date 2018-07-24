@@ -7,15 +7,45 @@
 ################################################################################
 
 import matplotlib
+import matplotlib.font_manager as FM
+import re
 from matplotlib import rcParams, pyplot as pp
 from cycler import cycler
+
+fcFontList = FM.get_fontconfig_fonts()
+# Search only for fonts that have name matches similar to this
+# note this is ALSO a priority list
+fontsDesired = ['Times', 'Helvetica', 'Arial']
+fontsDesiredRe = re.compile('|'.join(fontsDesired), flags=re.IGNORECASE)
+# Create a unique set of the fonts selected out of all of the system fonts
+fontsAvailable = frozenset([FM.FontProperties(fname=fcFont).get_name()\
+	for fcFont in fcFontList if fontsDesiredRe.search(fcFont) != None])
+
+fontSelected=None
+for fontSearch in fontsDesired:
+	for fontFound in fontsAvailable:
+		if re.search(fontSearch, fontFound, flags=re.IGNORECASE) != None:
+			fontSelected = fontFound
+			break
+	if fontSelected != None:
+		break
+if fontSelected == None:
+	print("WARN: None of the requested fonts found on this system.")
+else:
+	print("INFO: Using font '%s'" % (fontSelected))
+	newFontPriority = [fontSelected]
+	newFontPriority.extend(rcParams['font.serif'])
+	rcParams['font.serif'] = newFontPriority
 
 rcParams['grid.alpha'] = 0.5
 rcParams['grid.linestyle'] = ':'
 rcParams['font.family'] = ['serif']
-rcParams['font.size'] = 6.5
-rcParams['mathtext.fontset'] = 'dejavuserif'
-rcParams['mathtext.fontset'] = 'dejavuserif'
+rcParams['font.size'] = 7
+#rcParams['figure.titlesize'] = "medium"
+rcParams['axes.titlesize'] = 9
+rcParams['figure.titlesize'] = rcParams['axes.titlesize']
+#rcParams['mathtext.fontset'] = 'dejavuserif'
+#rcParams['mathtext.fontset'] = 'custom'
 rcParams['mathtext.it'] = 'serif:italic'
 rcParams['mathtext.bf'] = 'serif:bold'
 rcParams['mathtext.sf'] = 'serif'
