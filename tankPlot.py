@@ -369,16 +369,16 @@ if 3 in plot_list or 13 in plot_list:
 	if args.save:
 		if 13 in plot_list:
 			if not args.subplot:
-				h3[0].savefig('%s/%s.%s' % (figdir, 'NA-13.0', fig_ext))
-				h3[1].savefig('%s/%s.%s' % (figdir, 'NA-13.1', fig_ext))
+				h3[0].savefig('%s/%s.%s' % (figdir, '030-RMSGain-wgv', fig_ext))
+				h3[1].savefig('%s/%s.%s' % (figdir, '031-RMSPhase-wgv', fig_ext))
 			else:
-				h3[0].savefig('%s/%s.%s' % (figdir, 'NA-13.0', fig_ext))
+				h3[0].savefig('%s/%s.%s' % (figdir, '03d-RMSBoth-wgv', fig_ext))
 		else:
 			if not args.subplot:
-				h3[0].savefig('%s/%s.%s' % (figdir, 'NA-03.0', fig_ext))
-				h3[1].savefig('%s/%s.%s' % (figdir, 'NA-03.1', fig_ext))
+				h3[0].savefig('%s/%s.%s' % (figdir, '030-RMSGain', fig_ext))
+				h3[1].savefig('%s/%s.%s' % (figdir, '031-RMSPhase', fig_ext))
 			else:
-				h3[0].savefig('%s/%s.%s' % (figdir, 'NA-03.d', fig_ext))
+				h3[0].savefig('%s/%s.%s' % (figdir, '03d-RMSBoth', fig_ext))
 	if HEADLESS:
 		pp.close()
 	else:
