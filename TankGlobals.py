@@ -100,11 +100,14 @@ class ampSystem:
 	@property
 	def alpha_swp(self):
 		range_partial = np.ceil(self.gamma_len/2)
-		lhs = np.linspace(np.sqrt(self.alpha_min),1, range_partial)
-		rhs = np.flip(lhs,0)
+		rhs = np.power(np.linspace(0,1,range_partial),2)*(self.alpha_min-1)+1
+		lhs = np.flip(rhs,0)
+		#lhs = np.linspace(np.sqrt(self.alpha_min),1, range_partial)
+		#rhs = np.flip(lhs,0)
 		swp = np.concatenate((lhs,rhs[1:])) if np.mod(self.gamma_len,2) == 1 \
 												else np.concatenate((lhs,rhs))
-		return np.power(swp,2)
+		#return np.power(swp,2)
+		return swp
 
 	def set_gamma_swp(self, gamma_swp_function):
 		self._gamma_map_function = gamma_swp_function

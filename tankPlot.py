@@ -179,9 +179,9 @@ if 1 in plot_list or 11 in plot_list:
 	ax1[0].plot(f.hz,dB20(tf))
 	ax1[1].plot(f.hz,ang_unwrap(tf))
 
-	ax1[0].set_title('TF Gain')
+	ax1[0].set_title('Stage Gain Response')
 	ax1[0].set_ylabel('Gain (dB)')
-	ax1[1].set_title('TF Phase')
+	ax1[1].set_title('Stage Phase Response')
 	ax1[1].set_ylabel('Phase (deg)')
 
 	for axT in ax1:
