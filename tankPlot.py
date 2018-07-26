@@ -266,7 +266,7 @@ if 4 in plot_list or 14 in plot_list:
 		[hT.show() for hT in h4]
 
 if 5 in plot_list:
-	h5 = [pp.figure(figsize=(3.4,3.4)) for x in range(2)]
+	h5 = [pp.figure(figsize=(3.4,3)) for x in range(2)]
 	ax5 = []
 	ax5.append(h5[0].add_subplot(1,1,1, projection='smith'))
 	ax5.append(h5[1].add_subplot(1,1,1, projection='polar'))
@@ -277,9 +277,17 @@ if 5 in plot_list:
 	ax5[0].set_title('Tank Impedance')
 	ax5[1].set_title('Transfer Function')
 
+	# Adjust placement of smith plot
+	old_pos = ax5[0].title.get_position()
+	ax5[0].title.set_position((old_pos[0], 1.06))
+	p = ax5[0].get_position()
+	p.set_points([[0, 0.07],[1, 0.86]])
+	ax5[0].set_position(p)
+
 	old_pos = ax5[1].title.get_position()
 	ax5[1].title.set_position((old_pos[0], 1.1))
 	h5[1].tight_layout()
+
 	#[hT.tight_layout() for hT in h5]
 	if args.save:
 		h5[0].savefig('%s/%s.%s' % (figdir,

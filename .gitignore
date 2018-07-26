@@ -1,6 +1,6 @@
 # Figures directory
 figures*
-fromMat
+from*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
