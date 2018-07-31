@@ -12,6 +12,9 @@ import re
 from matplotlib import rcParams, pyplot as pp
 from cycler import cycler
 
+POLAR_YLIM_CONST=(-18,-6)
+POLAR_YLIM_CONST_ALT=(-32,-6)
+
 fcFontList = FM.get_fontconfig_fonts()
 # Search only for fonts that have name matches similar to this
 # note this is ALSO a priority list
@@ -50,6 +53,7 @@ rcParams['mathtext.it'] = 'serif:italic'
 rcParams['mathtext.bf'] = 'serif:bold'
 rcParams['mathtext.sf'] = 'serif'
 rcParams['mathtext.tt'] = 'monospace'
+rcParams['lines.linewidth'] = 1.0
 
 # axes.prop_cycle
 COLOR_CYCLE_LIST =  [

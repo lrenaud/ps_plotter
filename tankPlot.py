@@ -103,8 +103,12 @@ print('    Max G1 boost %.2fmS (%.1f%% of gm1)' % \
 
 ################################################################################
 # Extract the computed tank conductanec, and the transfer functions.
+(y_buf, tf_buf) = B.compute_ref(f)
+
 (y_tank, tf) = S.compute_block(f)
 (_, tf_ref) = S.compute_ref(f)
+tf = tf*(tf_buf*np.ones((tf.shape[1],1))).T
+tf_ref = tf_ref*tf_buf
 
 # To produce full 360 dgree plots, double the two transfer functions by
 # considering inversion.
@@ -125,8 +129,6 @@ y_tank = y_tank.T
 # Compute RMS phase error relative to ideal reference across plotting bandwidth
 (bw_ang, rms_ang_swp)=rms_v_bw(tf_r_ang-tf_r_ang_ideal, S.bw_plt)
 (bw_mag, rms_gain_swp)=rms_v_bw(tf_r, S.bw_plt)
-
-(y_buf, tf_buf) = B.compute_ref(f)
 
 ################################################################################
 ################################################################################
@@ -231,6 +233,7 @@ if 4 in plot_list or 14 in plot_list:
 
 	ax4[0].set_title('Tank Impedance')
 	ax4[1].set_title('Transfer Function')
+	ax4[1].set_ylim(LPRDefaultPlotting.POLAR_YLIM_CONST)
 
 	# Adjust placement of smith plot
 	old_pos = ax4[0].title.get_position()
@@ -276,6 +279,7 @@ if 5 in plot_list:
 
 	ax5[0].set_title('Tank Impedance')
 	ax5[1].set_title('Transfer Function')
+	ax5[1].set_ylim(LPRDefaultPlotting.POLAR_YLIM_CONST_ALT)
 
 	# Adjust placement of smith plot
 	old_pos = ax5[0].title.get_position()

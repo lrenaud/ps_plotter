@@ -36,6 +36,7 @@ for n in 1 2 3 4 11 12 13 14; do
 	) &
 done
 
+#bash ./runParse.sh &
 
 while [[ $(jobs -lr | wc -l) -gt 0 ]]; do sleep 0.1; done
 mkdir -p figures-png

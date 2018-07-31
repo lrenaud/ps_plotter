@@ -41,6 +41,8 @@ default_window_position=['+20+80', '+120+80']
 ################################################################################
 
 search_curves = (
+	['2018-05-15',3.13],
+	['2018-05-16',3.18],
 	['2018-05-21',3.19],
 	['2018-05-25',3.13]
 	)
@@ -78,7 +80,7 @@ for ind in inds:
 	GP=np.polyfit(buffer_freq, buffer_gain[:,ind], 2)
 	PP=np.polyfit(buffer_freq, buffer_phase[:,ind], 2)
 	#print(" %.2fe-3 x^2 + %.2fe-3 x + %.2fe-3 " % tuple(1e3*P))
-	print(ind)
+	print(ind, bias_t_mA[ind])
 	print(GP)
 	print(PP)
 	ax[1].plot(freq_synthetic, np.polyval(GP,freq_synthetic))
