@@ -66,12 +66,12 @@ from tankComputers import *
 freq_pts = 501
 
 S1=TankGlobals.ampSystem()
-B=TankGlobals.bufferSystem()
+S1.bw_plt=2
 f=FreqClass(freq_pts, S1.f0, S1.bw_plt)
 
 S1.q1_L = 15
 S2 = copy.deepcopy(S1)
-gain_variation = +4 # dB
+gain_variation = +5 # dB
 
 
 
@@ -105,8 +105,11 @@ tf_r_ang_ideal1 = wrap_rads(np.concatenate((-S1.phase_swp, -np.pi - S1.phase_swp
 tf_r_ang_ideal2 = wrap_rads(np.concatenate((-S2.phase_swp, -np.pi - S2.phase_swp)))
 tf_r_ang1 = np.angle(tf_r1)
 tf_r_ang2 = np.angle(tf_r2)
-tf_r_ang_rms1 = np.sqrt(np.mean(np.power(tf_r_ang1-tf_r_ang_ideal1,2),0))
-tf_r_ang_rms2 = np.sqrt(np.mean(np.power(tf_r_ang2-tf_r_ang_ideal2,2),0))
+#tf_r_ang_rms1 = np.sqrt(np.mean(np.power(tf_r_ang1-tf_r_ang_ideal1,2),0))
+#tf_r_ang_rms2 = np.sqrt(np.mean(np.power(tf_r_ang2-tf_r_ang_ideal2,2),0))
+
+tf_r_ang_rms1_f=delta_rms(tf_r_ang1, 2*np.pi/16)
+tf_r_ang_rms2_f=delta_rms(tf_r_ang2, 2*np.pi/16)
 
 ################################################################################
 # Compute RMS phase error relative to ideal reference across plotting bandwidth
@@ -115,15 +118,13 @@ tf_r_ang_rms2 = np.sqrt(np.mean(np.power(tf_r_ang2-tf_r_ang_ideal2,2),0))
 (bw_ang2, rms_ang_swp2)=rms_v_bw(tf_r_ang2-tf_r_ang_ideal2, S2.bw_plt)
 (bw_mag2, rms_gain_swp2)=rms_v_bw(tf_r2, S2.bw_plt)
 
-(y_buf, tf_buf) = B.compute_ref(f)
-
 ################################################################################
 ################################################################################
 ################################################################################
 #mgr = pp.get_current_fig_manager()
 
 ################################################################################
-if 3 in plot_list or 13 in plot_list:
+if 3 in plot_list:
 	h3 = [pp.figure() for x in range(2)]
 	ax3a = h3[0].subplots(1,2)
 	ax3b = h3[1].subplots(1,2)
@@ -195,3 +196,76 @@ if 3 in plot_list or 13 in plot_list:
 	else:
 		#mgr.window.geometry(default_window_position[0])
 		[hT.show() for hT in h3]
+
+if 4 in plot_list:
+	h4 = [pp.figure() for x in range(2)]
+	ax4a = h4[0].subplots(1,2)
+	ax4b = h4[1].subplots(1,2)
+	ax4 = np.concatenate((ax4a, ax4b))
+
+	#ax4[0].plot(bw_mag1,dB20(rms_gain_swp1))
+	#ax4[1].plot(bw_mag2,dB20(rms_gain_swp2))
+	ax4[2].plot(f.hz,tf_r_ang_rms1_f*180/np.pi)
+	ax4[3].plot(f.hz,tf_r_ang_rms2_f*180/np.pi)
+
+	h4[0].suptitle('RMS Gain Error')
+	h4[1].suptitle('RMS Phase Error')
+	#ax4[0].set_title('RMS Gain Error')
+	ax4[0].set_ylabel('Gain Error (dB)')
+	#ax4[2].set_title('RMS Phase Error')
+	ax4[2].set_ylabel('Phase Error (deg)')
+
+	#ax4[1].set_title('RMS Gain Error w/GV')
+	ax4[1].set_ylabel('Gain Error (dB)')
+	#ax4[3].set_title('RMS Phase Error w/GV')
+	ax4[3].set_ylabel('Phase Error (deg)')
+
+	# Match Axes
+	limSetGain = [axT.get_ylim() for axT in ax4[:2]]
+	limSetPhase = [axT.get_ylim() for axT in ax4[2:]]
+	limSetGain = (np.min(limSetGain), np.max(limSetGain))
+	limSetPhase = (np.min(limSetPhase), np.max(limSetPhase))
+
+	for axT in ax4[:2]:
+		axT.set_ylim(limSetGain)
+	for axT in ax4[2:]:
+		axT.set_ylim(limSetPhase)
+	for axT in ax4[[1,3]]:
+		LPRDefaultPlotting.axAnnotateCorner(axT,
+			'%g dB gain variation' % (gain_variation), corner=2, ratio=0.04)
+		axT.yaxis.tick_right()
+		axT.yaxis.label_position='right'
+		axT.yaxis.labelpad = axT.yaxis.labelpad + axT.yaxis.label.get_size()
+
+	for axT in ax4[[0,2]]:
+		LPRDefaultPlotting.axAnnotateCorner(axT,
+			'%g dB gain variation' % (0), corner=2, ratio=0.04)
+
+	for axT in ax4:
+		axT.grid()
+		axT.set_xlim((np.min(f.hz),np.max(f.hz)))
+		axT.set_xlabel('Frequency (GHz)')
+
+	[hT.tight_layout() for hT in h4]
+	[hT.tight_layout() for hT in h4]
+	# Make XY mirror positions
+	for i in [0,2]:
+		p0 = ax4[i].get_position()
+		p1 = ax4[i+1].get_position()
+		p1.x1 = 1 - p0.x0
+		p1.x0 = 1 - p0.x1
+		ax4[i+1].set_position(p1)
+
+	for axT in ax4:
+		p=axT.get_position()
+		p.y1=0.88
+		axT.set_position(p)
+
+	if args.save:
+		h4[0].savefig('%s/%s.%s' % (figdir, 'dual_040-RMSGain', fig_ext))
+		h4[1].savefig('%s/%s.%s' % (figdir, 'dual_041-RMSPhase', fig_ext))
+	if HEADLESS:
+		pp.close()
+	else:
+		#mgr.window.geometry(default_window_position[0])
+		[hT.show() for hT in h4]

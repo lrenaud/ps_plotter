@@ -15,15 +15,15 @@ def ang_unwrap(volt_tf):
 def dB10(pwr_tf):
 	"""Describe power gain of a transfer function in dB (i.e. 10log(x))"""
 	return 10*np.log10(np.abs(pwr_tf))
-	
+
 def dB2Vlt(dB20_value):
 	return np.power(10,dB20_value/20)
-	
+
 def wrap_rads(angles):
 	return np.mod(angles+np.pi,2*np.pi)-np.pi
 def atand(x):
 	return 180/np.pi*np.arctan(x)
-	
+
 def setLimitsTicks(ax, data, steps):
 	targs = np.array([1, 2, 4, 5, 10, 20, 30, 50, 60, 100, 250, 1000])
 	lo = np.min(data)
@@ -36,7 +36,7 @@ def setLimitsTicks(ax, data, steps):
 	marks = np.arange(0,steps+1)*step_size + lo
 	ax.set_ylim((lo,hi))
 	ax.set_yticks(marks)
-	
+
 def rms_v_bw(err_sig, bandwidth_scale=1):
 	"""compute the rms vs bandwidth assuming a fixed center frequency"""
 	# First compute the error power
@@ -63,3 +63,19 @@ def rms_v_bw(err_sig, bandwidth_scale=1):
 	rms = np.sqrt(np.cumsum(folded,0) / (ind*np.ones((folded.shape[1],1))).T )
 	return (frac_step*bandwidth_scale, rms)
 
+def delta_rms(signal, reference_delta, wrap_point=2*np.pi):
+	"""compute the rms difference between various states and a reference"""
+	# First compute the matrix difference including folding
+	signal_delta = np.column_stack((
+		signal[:,1:]-signal[:,:-1],
+		signal[:,0]-signal[:,-1]
+		))
+	signal_delta = np.where(signal_delta>wrap_point/2, \
+		signal_delta-wrap_point, signal_delta)
+	signal_delta = np.where(signal_delta<-wrap_point/2, \
+		signal_delta+wrap_point, signal_delta)
+	signal_error = np.abs(signal_delta)-reference_delta
+
+	signal_rms = np.sqrt(np.mean(np.power(signal_error,2),1))
+
+	return signal_rms

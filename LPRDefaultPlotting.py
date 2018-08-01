@@ -13,6 +13,7 @@ from matplotlib import rcParams, pyplot as pp
 from cycler import cycler
 
 POLAR_YLIM_CONST=(-18,-6)
+POLAR_YLIM_CONST_MEAS=(-22,-10)
 POLAR_YLIM_CONST_ALT=(-32,-6)
 
 fcFontList = FM.get_fontconfig_fonts()
@@ -54,6 +55,7 @@ rcParams['mathtext.bf'] = 'serif:bold'
 rcParams['mathtext.sf'] = 'serif'
 rcParams['mathtext.tt'] = 'monospace'
 rcParams['lines.linewidth'] = 1.0
+#rcParams['axes.grid'] = True
 
 # axes.prop_cycle
 COLOR_CYCLE_LIST =  [
