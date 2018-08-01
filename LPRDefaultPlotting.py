@@ -121,3 +121,13 @@ def figAnnotateClear(hobj):
 	for child in children:
 		if type(child) == matplotlib.text.Text:
 			child.remove()
+
+def annotateArrow(ha, y, x_list, direction='right'):
+	x=[min(x_list), max(x_list)]
+	if direction == 'right':
+		x=[x[-1], x[0]]
+
+	ha.annotate("",
+		xy=(x[0], y), xycoords='data',
+		xytext=(x[1], y), textcoords='data',
+		arrowprops=dict(width=2, headwidth=8, headlength=6, facecolor='black'))

@@ -279,6 +279,9 @@ for filename in os.listdir(source_directory):
 			# Recall that the ylimits should be 0-360 basically.
 			aT.set_ylabel('RMS Error (deg)')
 			aT.plot(imeas.f, ang_rms)
+			marker_freq = 27.5
+			marker_point = np.argmin(np.abs(imeas.f-marker_freq))
+			marker_height = ang_rms[marker_point]
 
 			# The goal is to take the usual step size of 50,
 			# and then equate that with a 1-degree step in RMS Error
@@ -304,6 +307,8 @@ for filename in os.listdir(source_directory):
 			aT.get_lines()[0].set_linewidth(2.0)
 			aT.get_lines()[0].set_linestyle('-.')
 			aT.get_lines()[0].set_color('black')
+			LPRDefaultPlotting.annotateArrow(aT, marker_height, \
+				[marker_freq+0.05, marker_freq+0.25])
 		for aT in ax:
 			aT.set_xlabel('Frequency (GHz)')
 			aT.grid()
