@@ -36,7 +36,7 @@ class ampSystem:
 		# Configuration Of Hardware
 		#####
 		self.q1_L	= 25
-		self.q1_C	= 8
+		self.q1_C	= 6
 		self.l1		= 140e-3 # nH
 		self.gm1	= 2.5e-3 # S
 
@@ -46,7 +46,7 @@ class ampSystem:
 		if not quiet:
 			## Report System Descrption
 			print('  L1 = %.3fpH, C1 = %.3ffF' % (1e3*self.l1, 1e6*self.c1))
-			print('    Rp = %.3f Ohm' % (1/self.g1))
+			print('    Rp = %.3f Ohm (Gp = %.3f mS)' % (1/self.g1, 1e3*self.g1))
 			print('    Q  = %.1f' % (self.Q1))
 		self._gamma_warn = False
 
@@ -100,7 +100,7 @@ class ampSystem:
 	@property
 	def alpha_swp(self):
 		range_partial = np.ceil(self.gamma_len/2)
-		rhs = np.power(np.linspace(0,1,range_partial),2)*(self.alpha_min-1)+1
+		rhs = np.power(np.linspace(0,1,range_partial),1)*(self.alpha_min-1)+1
 		lhs = np.flip(rhs,0)
 		#lhs = np.linspace(np.sqrt(self.alpha_min),1, range_partial)
 		#rhs = np.flip(lhs,0)

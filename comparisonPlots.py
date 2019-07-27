@@ -71,7 +71,7 @@ f=FreqClass(freq_pts, S1.f0, S1.bw_plt)
 
 S1.q1_L = 15
 S2 = copy.deepcopy(S1)
-gain_variation = +5 # dB
+gain_variation = -2 # dB
 
 
 

@@ -14,7 +14,13 @@ from cycler import cycler
 
 POLAR_YLIM_CONST=(-18,-6)
 POLAR_YLIM_CONST_MEAS=(-22,-10)
+POLAR_YLIM_CONST_MEAS=(-15,-3)
 POLAR_YLIM_CONST_ALT=(-32,-6)
+GAIN_FIXED_YLIM1=(-20,-0)
+GAIN_FIXED_YLIM2=(-30,-0)
+GAIN_FIXED_YLIM3=(-10,10)
+GAIN_FIXED_YLIM4=(-0,20)
+GAIN_FIXED_YLIM5=(-20,0)
 
 fcFontList = FM.get_fontconfig_fonts()
 # Search only for fonts that have name matches similar to this

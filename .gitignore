@@ -1,6 +1,8 @@
 # Figures directory
 figures*
 from*
+.vscode/
+revisedData
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

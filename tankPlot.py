@@ -57,7 +57,7 @@ figScaleSize = 1.0 if args.save else 1.6
 if args.subplot:
 	rcParams['figure.figsize'] = [3.4*figScaleSize,4*figScaleSize]
 else:
-	rcParams['figure.figsize'] = [3.4*figScaleSize,2.25*figScaleSize]
+	rcParams['figure.figsize'] = [3.4*figScaleSize,2*figScaleSize]
 default_window_position=['+20+80', '+120+80']
 
 ################################################################################
@@ -68,11 +68,12 @@ from tankComputers import *
 freq_pts = 501
 
 S=TankGlobals.ampSystem()
+#S.bw_plt=2
 B=TankGlobals.bufferSystem()
 
 S.q1_L = 15
 if plot_list[0] in [11, 12, 13, 14]:
-	gain_variation = +4 # dB
+	gain_variation = -2 # dB
 else:
 	gain_variation = 0 # dB
 
@@ -80,10 +81,11 @@ if plot_list[0] in [14, 4, 5]:
 	S.bw_plt = 0.5
 	B.bw_plt = S.bw_plt
 	freq_pts = 51
-if plot_list[0] == 5:
+if plot_list[0] in [5, 7]:
 	S.set_g1_swp(TankGlobals.g1_map_flat)
 	S.set_gamma_swp(TankGlobals.gamma_map_flat)
 
+S.bw_plt = 2;
 f=FreqClass(freq_pts, S.f0, S.bw_plt)
 
 ################################################################################
@@ -129,6 +131,11 @@ y_tank = y_tank.T
 # Compute RMS phase error relative to ideal reference across plotting bandwidth
 (bw_ang, rms_ang_swp)=rms_v_bw(tf_r_ang-tf_r_ang_ideal, S.bw_plt)
 (bw_mag, rms_gain_swp)=rms_v_bw(tf_r, S.bw_plt)
+tf_ang_rms=delta_rms(tf_r_ang, 2*np.pi/16)*180/np.pi
+index_f0 = np.squeeze(np.argwhere(f.hz==28))
+tf_gain_pm = gain_error(dB20(tf_r),index_f0)
+tf_gain_rms = rms(dB20(tf_r), index_f0)
+
 
 ################################################################################
 ################################################################################
@@ -181,15 +188,18 @@ if 1 in plot_list or 11 in plot_list:
 	ax1[0].plot(f.hz,dB20(tf))
 	ax1[1].plot(f.hz,ang_unwrap(tf))
 
-	ax1[0].set_title('Stage Gain Response')
+	ax1[0].set_title('Enhanced Gain Response')
 	ax1[0].set_ylabel('Gain (dB)')
-	ax1[1].set_title('Stage Phase Response')
+	ax1[1].set_title('Enhanced Phase Response')
 	ax1[1].set_ylabel('Phase (deg)')
 
 	for axT in ax1:
 		axT.grid()
 		axT.set_xlabel('Freq (GHz)')
 		axT.set_xlim(f.hz_range)
+
+	ax1[0].set_ylim(LPRDefaultPlotting.GAIN_FIXED_YLIM1)
+
 
 	[hT.tight_layout() for hT in h1]
 	if 11 in plot_list:
@@ -304,6 +314,49 @@ if 5 in plot_list:
 		#mgr.window.geometry(default_window_position[0])
 		[hT.show() for hT in h5]
 
+if 7 in plot_list:
+	if not args.subplot:
+		h1 = [pp.figure() for x in range(2)]
+		ax1 = [hT.add_subplot(1,1,1) for hT in h1]
+	else:
+		h1 = [pp.figure() for x in range(1)]
+		ax1 = h1[0].subplots(2,1)
+
+	ax1[0].plot(f.hz,dB20(tf))
+	ax1[1].plot(f.hz,ang_unwrap(tf))
+
+	ax1[0].set_title('Non-Enhanced Gain Response')
+	ax1[0].set_ylabel('Gain (dB)')
+	ax1[1].set_title('Non-Enhanced Phase Response')
+	ax1[1].set_ylabel('Phase (deg)')
+	ax1[0].set_ylim(LPRDefaultPlotting.GAIN_FIXED_YLIM2)
+
+	for axT in ax1:
+		axT.grid()
+		axT.set_xlabel('Freq (GHz)')
+		axT.set_xlim(f.hz_range)
+
+	[hT.tight_layout() for hT in h1]
+	if 11 in plot_list:
+		for hT in h1:
+			LPRDefaultPlotting.figAnnotateCorner(hT,
+				'%g dB gain variation' % (gain_variation))
+
+	if args.save:
+		if args.subplot:
+			h1[0].savefig('%s/%s.%s' % (figdir,
+				'07d-ideal-AbsGainPhase', fig_ext))
+		else:
+			h1[0].savefig('%s/%s.%s' % (figdir,
+				'070-AbsGain', fig_ext))
+			h1[1].savefig('%s/%s.%s' % (figdir,
+				'071-AbsPhase', fig_ext))
+	if HEADLESS:
+		pp.close()
+	else:
+		#mgr.window.geometry(default_window_position[0])
+		[hT.show() for hT in h1]
+
 ################################################################################
 if 2 in plot_list or 12 in plot_list:
 	if not args.subplot:
@@ -312,16 +365,51 @@ if 2 in plot_list or 12 in plot_list:
 	else:
 		h2 = [pp.figure() for x in range(1)]
 		ax2 = h2[0].subplots(2,1)
+	ax2 = np.append(ax2, ax2[0].twinx())
+	ax2 = np.append(ax2, ax2[1].twinx())
 
 	ax2[0].plot(f.hz,dB20(tf_r))
 	setLimitsTicks(ax2[0], dB20(tf_r), 6)
+	#ax2[2].plot(f.hz,tf_gain_pm)
+	ax2[2].plot(f.hz,tf_gain_rms)
+
 	ax2[1].plot(f.hz,ang_unwrap(tf_r.T).T)
+	ax2[3].plot(f.hz,tf_ang_rms)
 	setLimitsTicks(ax2[1], ang_unwrap(tf_r.T), 6)
 
 	ax2[0].set_title('Relative Gain')
 	ax2[0].set_ylabel('Gain (dB)')
+	ax2[2].set_ylabel('RMS Gain Error (dB)')
 	ax2[1].set_title('Relative Phase')
 	ax2[1].set_ylabel('Phase (deg)')
+	ax2[3].set_ylabel('RMS Error (deg)')
+	for axT in ax2[[2,3]]:
+		for axTLi,axTL in enumerate(axT.get_lines()):
+			axTL.set_linewidth(2.0)
+			axTL.set_color('black')
+			if axTLi == 0:
+				axTL.set_linestyle('-.')
+			else:
+				axTL.set_linestyle(':')
+		axT.grid()
+
+	ax2[0].set_ylim(LPRDefaultPlotting.GAIN_FIXED_YLIM3)
+	ax2[2].set_ylim(LPRDefaultPlotting.GAIN_FIXED_YLIM4)
+
+	ax2[2].set_ylim(ax2[0].get_ylim()/np.array(1)+4)
+	ax2[3].set_ylim((0,20))
+
+	marker_freq = 28.2
+	marker_point = np.argmin(np.abs(f.hz-marker_freq))
+	marker_height = tf_gain_pm[marker_point]
+	LPRDefaultPlotting.annotateArrow(ax2[2], marker_height, \
+		[marker_freq+0.05, marker_freq+0.25])
+
+	marker_freq = 28.39
+	marker_point = np.argmin(np.abs(f.hz-marker_freq))
+	marker_height = tf_ang_rms[marker_point]
+	LPRDefaultPlotting.annotateArrow(ax2[3], marker_height, \
+		[marker_freq+0.05, marker_freq+0.25])
 
 	for axT in ax2:
 		axT.grid()

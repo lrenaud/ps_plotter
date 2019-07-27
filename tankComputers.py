@@ -79,3 +79,22 @@ def delta_rms(signal, reference_delta, wrap_point=2*np.pi):
 	signal_rms = np.sqrt(np.mean(np.power(signal_error,2),1))
 
 	return signal_rms
+
+def gain_error(signal, ref_freq_ind):
+	"""compute the gain variation relative to a mean computed at ref_freq_ind"""
+	# First compute the matrix difference including folding
+	inband_gain = np.mean(signal[ref_freq_ind,:])
+	signal_off = signal-inband_gain
+	range = np.max(signal_off,1)-np.min(signal_off,1)
+
+	return range
+
+def rms(signal, ref_freq_ind=None):
+	"""compute raw RMS"""
+	if ref_freq_ind == None:
+		offset_signal = signal-np.transpose(\
+			np.ones((signal.shape[1],1))*np.mean(signal,1)\
+			)
+	else:
+		offset_signal = signal-np.mean(signal[ref_freq_ind,:])
+	return np.sqrt(np.mean(np.power(offset_signal,2),1))

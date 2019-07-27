@@ -17,6 +17,8 @@ args_parser.add_argument('--headless','-q', action='store_true',
 	help='Remain neadless even if we aren\'t saving files.')
 args_parser.add_argument('-n', type=int, default=4,
 	help='plot testing number')
+args_parser.add_argument('-c', type=int, default=16,
+	help='number of phase states [16,32,64]')
 args = args_parser.parse_args()
 
 ################################################################################
@@ -65,6 +67,8 @@ if args.polar:
 else:
 	FILE_PAT = '%s-trunk.s2p';
 figdir = 'figures-measured'
+if args.c != 16:
+	figdir=figdir+('-%d' % args.c)
 
 class MeasurementConfig(namedtuple('config', ['r','c','inv','bias'])):
 	__slots__ = ()
@@ -87,13 +91,14 @@ def ang(x):
 
 BDE=namedtuple('BufferDeEmbed',['mstr','PolyGain','PolyPhase','PhiFix','test'])
 BDE_list=[]
+
 # 2018-05-15
 BDE_list.append(BDE(
 	'2018-05-15',
 	np.array([ 4.06488853e-03, -5.11527396e-01,  2.53053550e+01]),
 	np.array([-1.62202706e-03,  6.94343608e-01, -1.80381551e+02]),
 	-60,
-	'S02bB_C+00dB_M0'
+	'S02bB_C+01dB_M0'
 ))
 # 2018-05-16
 BDE_list.append(BDE(
@@ -124,7 +129,7 @@ BDE_list.append(BDE(
 	'S02bB_C+00dB_M0'
 ))
 
-source_directory='fromMat/%s_mat/' % SRC_DATA_NAME
+source_directory='fromMat/figures-%d/%s_mat/' % (args.c, SRC_DATA_NAME)
 for BDEx in BDE_list:
 	if re.search(BDEx.mstr, source_directory) != None:
 		PolyGain=BDEx.PolyGain
@@ -133,6 +138,26 @@ for BDEx in BDE_list:
 		StopTestString=BDEx.test
 		FamStr=BDEx.mstr
 		break
+
+
+################################################################################
+################################################################################
+################################################################################
+# FIXME ########################################################################
+################################################################################
+################################################################################
+################################################################################
+PolyGain_balun=np.array([0, 0, -7])
+PolyPhase_balun=np.array([0, 0, 0])
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+
+if args.c == 64:
+	StopTestString='S05bB_C+05dB_M0_-64'
+elif args.c == 32:
+	StopTestString='S03bB_C+00dB_M0_-32'
 
 with open(SRC_DATA_SUMMARY, 'r') as h_sumDat:
 	sumDat = json.load(h_sumDat)
@@ -185,8 +210,13 @@ for filename in os.listdir(source_directory):
 		buffer_phase = buffer_phase - np.mean(buffer_phase) + \
 			PhaseFixedRotationFactor*np.pi/180
 		buffer_sdat = np.power(10,buffer_gain/20)*np.exp(1j*buffer_phase)
+		
+		balun_gain = np.polyval(PolyGain_balun,freq)
+		balun_phase = np.polyval(PolyPhase_balun,freq)
+		balun_phase = balun_phase - np.mean(balun_phase)
+		balun_sdat = np.power(10,balun_gain/20)*np.exp(1j*balun_phase)
 
-		sdat = sdat_raw/buffer_sdat
+		sdat = sdat_raw/buffer_sdat/balun_sdat
 
 		slope_valid_inds = np.where(np.all((freq >= slopeBandwidthFreq[0],
 			freq <= slopeBandwidthFreq[1]),0))
@@ -213,17 +243,20 @@ for filename in os.listdir(source_directory):
 		ax=h.add_subplot(1,1,1, projection='polar')
 	else:
 		h=pp.figure(figsize=(3.4*figScaleSize, 4.5*figScaleSize))
-		h2=pp.figure(figsize=(3.4*figScaleSize, 2.8*figScaleSize))
+		h2=pp.figure(figsize=(3.4*figScaleSize, 2.3*figScaleSize))
 		ax=h.subplots(2,1)
 		ax = np.append(ax, h2.subplots(1,1))
 		ax = np.append(ax, ax[1].twinx())
 		ax = np.append(ax, ax[2].twinx())
+		ax = np.append(ax, ax[0].twinx())
 	summary_msg = \
 		"/---------------------\/----------------------------------------\\\n"\
 		"|  _C  R  I  _Bias_   ||       Gain          Phase       Power  |\n"\
 		"|---------------------||----------------------------------------|\n"
 	all_sdat = np.column_stack([imeas.s21 for imeas in collectedData])
-	ang_rms = delta_rms(np.angle(all_sdat), 2*np.pi/16)*180/np.pi
+	ang_rms = delta_rms(np.angle(all_sdat), 2*np.pi/args.c)*180/np.pi
+	gain_pm = gain_error(dB20(all_sdat), index_f0)
+	gain_rms = rms(dB20(all_sdat), index_f0)
 	for imeas in collectedData:
 		if args.polar:
 			#ax.plot(ang(imeas.s21)-buffer_phase, dB20(imeas.s21)-buffer_gain)
@@ -258,6 +291,7 @@ for filename in os.listdir(source_directory):
 	 	"|===>      RMS: %6.1f deg (%6.1f deg -  %6.1f deg)           | \n" \
 	 	"\_______________________________________________________________/" % \
 		(sumTuple_avgMinMax([pwr_list, gain_list, ang_rms]))
+	print(group_filename_string, sumTuple_avgMinMax([ang_rms]))
 	if args.polar:
 		ax.set_ylim(LPRDefaultPlotting.POLAR_YLIM_CONST_MEAS)
 
@@ -269,9 +303,43 @@ for filename in os.listdir(source_directory):
 		np.min([np.min(line.get_ydata()) for line in ax[2].get_lines()])
 		ax[0].set_title('Measured Performance')
 		ax[0].set_ylabel('Gain (dB)')
+		######### FIXME ########################################################
+		#ax[0].set_ylim(np.array([-17.5, 2.5]))
+		ax[0].set_ylim(np.array([-20, 0]))
 		ax[1].set_ylabel('Relative Phase (deg)')
 		ax[2].set_ylabel('Relative Phase (deg)')
 		ax[2].set_title('Relative Phase')
+		ax[1].set_ylim(np.array([-100, 360]))
+		ax[2].set_ylim(np.array([-100, 360]))
+
+		marker_freq = 28.1
+		LPRDefaultPlotting.annotateArrow(ax[0], -4, \
+			[marker_freq+0.05+0.02, marker_freq+0.15+0.02], direction='left')
+
+		for i in [5]:
+			aT=ax[i]
+			aR=ax[0]
+			#aT.plot(imeas.f, gain_pm)
+			aT.plot(imeas.f, gain_rms)
+			for axTLi,axTL in enumerate(aT.get_lines()):
+				axTL.set_linewidth(2.0)
+				axTL.set_color('black')
+				if axTLi == 0:
+					axTL.set_linestyle('-.')
+				else:
+					axTL.set_linestyle(':')
+			aT.set_ylabel('RMS Gain Variation (dB)')
+
+			marker_freq = 27.7
+			marker_point = np.argmin(np.abs(imeas.f-marker_freq))
+			marker_height = gain_pm[marker_point]
+			marker_height = gain_rms[marker_point]
+			LPRDefaultPlotting.annotateArrow(aT, marker_height+0.5, \
+				[marker_freq+0.05+0.02, marker_freq+0.15+0.02])
+			aT.set_ylim(aR.get_ylim()/np.array(1)+20)
+			aT.grid()
+		######### FIXME ########################################################
+
 		for i in range(3,5):
 			aT=ax[i]
 			aR=ax[i-2]
@@ -279,7 +347,8 @@ for filename in os.listdir(source_directory):
 			# Recall that the ylimits should be 0-360 basically.
 			aT.set_ylabel('RMS Error (deg)')
 			aT.plot(imeas.f, ang_rms)
-			marker_freq = 27.5
+			#marker_freq = 27.5
+			marker_freq = 28.3
 			marker_point = np.argmin(np.abs(imeas.f-marker_freq))
 			marker_height = ang_rms[marker_point]
 
@@ -301,19 +370,26 @@ for filename in os.listdir(source_directory):
 				yXover = np.array([np.min(yRTover[:,0]), np.max(yRTover[:,1])])
 				aR.set_ylim(yRscl*yXover + yRmrks)
 				aT.set_ylim(yTscl*yXover + yTmrks)
-			aT.set_ylim(aR.get_ylim()/np.array(50)+3)
+			#aT.set_ylim(aR.get_ylim()/np.array(20)+9)
+			aT.set_ylim((0,20))
 			aT.grid()
 
 			aT.get_lines()[0].set_linewidth(2.0)
 			aT.get_lines()[0].set_linestyle('-.')
 			aT.get_lines()[0].set_color('black')
-			LPRDefaultPlotting.annotateArrow(aT, marker_height, \
-				[marker_freq+0.05, marker_freq+0.25])
+			LPRDefaultPlotting.annotateArrow(aT, marker_height-0.5, \
+				[marker_freq+0.05, marker_freq+0.15])
+
+		ax[5].set_ylim(np.array([0, 20]))
+		#ax[3].set_ylim(np.array([0, 42]))
+		ax[3].set_ylim(np.array([0, 23]))
+
 		for aT in ax:
 			aT.set_xlabel('Frequency (GHz)')
 			aT.grid()
 			#aT.set_xlim((np.min(imeas.f), np.max(imeas.f)))
-			aT.set_xlim((28-1.0, 28+1.0))
+			#aT.set_xlim((28-1.0, 28+1.0))
+			aT.set_xlim((28-0.5, 28+0.5))
 
 	if args.polar:
 		old_pos = ax.title.get_position()
