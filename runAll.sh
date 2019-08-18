@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MAX_JOBS=4
+MAX_JOBS=8
 
 echo "Starting:"
 # First run brute force misc jobs

@@ -336,7 +336,9 @@ for filename in os.listdir(source_directory):
 			marker_height = gain_rms[marker_point]
 			LPRDefaultPlotting.annotateArrow(aT, marker_height+0.5, \
 				[marker_freq+0.05+0.02, marker_freq+0.15+0.02])
-			aT.set_ylim(aR.get_ylim()/np.array(1)+20)
+			aT.set_ylim((aR.get_ylim()/np.array(1)+20)/1)
+			aT.set_yticks([x for x in aT.get_yticks() if x <= 7.5])
+			aR.set_yticks([x for x in aR.get_yticks() if x >= -17.5])
 			aT.grid()
 		######### FIXME ########################################################
 
@@ -348,9 +350,10 @@ for filename in os.listdir(source_directory):
 			aT.set_ylabel('RMS Error (deg)')
 			aT.plot(imeas.f, ang_rms)
 			#marker_freq = 27.5
-			marker_freq = 28.3
+			#marker_freq = 28.3
+			marker_freq = 27.8
 			marker_point = np.argmin(np.abs(imeas.f-marker_freq))
-			marker_height = ang_rms[marker_point]
+			marker_height = ang_rms[marker_point]+2
 
 			# The goal is to take the usual step size of 50,
 			# and then equate that with a 1-degree step in RMS Error
@@ -371,8 +374,13 @@ for filename in os.listdir(source_directory):
 				aR.set_ylim(yRscl*yXover + yRmrks)
 				aT.set_ylim(yTscl*yXover + yTmrks)
 			#aT.set_ylim(aR.get_ylim()/np.array(20)+9)
-			aT.set_ylim((0,20))
+			aT.set_yticks(np.arange(0,11,5))
+			aR.set_yticks(np.arange(0,361,60))
+			aT.set_ylim((0,50))
+			aR.set_ylim((-90,360))
 			aT.grid()
+			LPRDefaultPlotting.addHalfTicks(aT)
+			LPRDefaultPlotting.addHalfTicks(aR)
 
 			aT.get_lines()[0].set_linewidth(2.0)
 			aT.get_lines()[0].set_linestyle('-.')
@@ -380,9 +388,9 @@ for filename in os.listdir(source_directory):
 			LPRDefaultPlotting.annotateArrow(aT, marker_height-0.5, \
 				[marker_freq+0.05, marker_freq+0.15])
 
-		ax[5].set_ylim(np.array([0, 20]))
+		#ax[5].set_ylim(np.array([0, 20]))
 		#ax[3].set_ylim(np.array([0, 42]))
-		ax[3].set_ylim(np.array([0, 23]))
+		#ax[3].set_ylim(np.array([0, 23]))
 
 		for aT in ax:
 			aT.set_xlabel('Frequency (GHz)')

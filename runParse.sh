@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MAX_JOBS=4
+MAX_JOBS=8
 
 #for n in $(seq 1 4); do
 for n in 4; do

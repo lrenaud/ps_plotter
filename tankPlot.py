@@ -399,6 +399,12 @@ if 2 in plot_list or 12 in plot_list:
 	ax2[2].set_ylim(ax2[0].get_ylim()/np.array(1)+4)
 	ax2[3].set_ylim((0,20))
 
+	ax2[1].set_ylim((-260,180))
+	ax2[3].set_yticks(np.linspace(0,44,12))
+	ax2[3].set_yticks([x for x in ax2[3].get_yticks() if x <= 8])
+	LPRDefaultPlotting.addHalfTicks(ax2[3])
+	LPRDefaultPlotting.addHalfTicks(ax2[2])
+
 	marker_freq = 28.2
 	marker_point = np.argmin(np.abs(f.hz-marker_freq))
 	marker_height = tf_gain_pm[marker_point]
@@ -406,8 +412,9 @@ if 2 in plot_list or 12 in plot_list:
 		[marker_freq+0.05, marker_freq+0.25])
 
 	marker_freq = 28.39
+	marker_freq = 27.52
 	marker_point = np.argmin(np.abs(f.hz-marker_freq))
-	marker_height = tf_ang_rms[marker_point]
+	marker_height = tf_ang_rms[marker_point]+2
 	LPRDefaultPlotting.annotateArrow(ax2[3], marker_height, \
 		[marker_freq+0.05, marker_freq+0.25])
 

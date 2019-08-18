@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MAX_JOBS=4
+MAX_JOBS=8
 
 for n in 2 12; do
 	while [[ $MAX_JOBS -le $(jobs -l | wc -l) ]]; do sleep 0.1; done

@@ -103,6 +103,14 @@ def figAnnotateCorner(hfig, msg, corner=1, ratio=0.01, clear=True):
 	hfig.text(loc_x, loc_y, msg, transform=ax.transAxes,
 		va=algn_v, ha=algn_h)
 
+def addHalfTicks(haxis, gridOn=True):
+	ticks = haxis.get_yticks()
+	minor_ticks = (ticks[1:]+ticks[:-1])/2
+	haxis.set_yticks(minor_ticks, minor=True)
+	if gridOn:
+		haxis.grid(gridOn, which='major')
+		haxis.grid(gridOn, which='minor')
+
 def axAnnotateCorner(ha, msg, corner=1, ratio=0.01):
 	if corner in [1,2]:
 		loc_x = ratio
@@ -137,3 +145,8 @@ def annotateArrow(ha, y, x_list, direction='right'):
 		xy=(x[0], y), xycoords='data',
 		xytext=(x[1], y), textcoords='data',
 		arrowprops=dict(width=2, headwidth=8, headlength=6, facecolor='black'))
+
+def annotateArrowStr(ha, msg, y, x):
+	ha.annotate(msg, 
+		xy=(x, y), xycoords='data',
+		xytext=(x, y), textcoords='data')
