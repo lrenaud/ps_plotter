@@ -2,7 +2,7 @@
 figures*
 from*
 .vscode/
-revisedData
+revisedData*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
