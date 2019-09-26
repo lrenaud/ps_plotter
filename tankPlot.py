@@ -57,7 +57,7 @@ figScaleSize = 1.0 if args.save else 1.6
 if args.subplot:
 	rcParams['figure.figsize'] = [3.4*figScaleSize,4*figScaleSize]
 else:
-	rcParams['figure.figsize'] = [3.4*figScaleSize,2*figScaleSize]
+	rcParams['figure.figsize'] = [3.4*figScaleSize,1.9*figScaleSize]
 default_window_position=['+20+80', '+120+80']
 
 ################################################################################
@@ -182,8 +182,15 @@ if 1 in plot_list or 11 in plot_list:
 		h1 = [pp.figure() for x in range(2)]
 		ax1 = [hT.add_subplot(1,1,1) for hT in h1]
 	else:
-		h1 = [pp.figure() for x in range(1)]
-		ax1 = h1[0].subplots(2,1)
+		h1 = [pp.figure(figsize=(3.4,3.2)) for x in range(1)]
+		ax1 = []
+		GRIDSPEC_SIZE=7
+		GRIDSPEC_LEN_B=4
+		GRIDSPEC_LEN_A = GRIDSPEC_SIZE-GRIDSPEC_LEN_B
+		ax1.append(pp.subplot2grid((GRIDSPEC_SIZE,1),(0,0), rowspan=GRIDSPEC_LEN_A))
+		ax1.append(pp.subplot2grid((GRIDSPEC_SIZE,1),(GRIDSPEC_LEN_A,0), rowspan=GRIDSPEC_LEN_B))
+		#ax1 = h1[0].subplots(2,1)
+		#h1[0].add
 
 	ax1[0].plot(f.hz,dB20(tf))
 	ax1[1].plot(f.hz,ang_unwrap(tf))
@@ -198,7 +205,7 @@ if 1 in plot_list or 11 in plot_list:
 		axT.set_xlabel('Freq (GHz)')
 		axT.set_xlim(f.hz_range)
 
-	ax1[0].set_ylim(LPRDefaultPlotting.GAIN_FIXED_YLIM1)
+	ax1[0].set_ylim(LPRDefaultPlotting.GAIN_FIXED_YLIM1_REVISED)
 
 
 	[hT.tight_layout() for hT in h1]
