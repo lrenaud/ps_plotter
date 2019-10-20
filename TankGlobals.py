@@ -39,6 +39,7 @@ class ampSystem:
 		self.q1_C	= 6
 		self.l1		= 140e-3 # nH
 		self.gm1	= 2.5e-3 # S
+		self.gm1	*= 2
 
 		self._gamma_steps=8
 		self._gamma_cap_ratio = 0.997
