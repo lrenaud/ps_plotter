@@ -59,7 +59,7 @@ SRC_DATA_INDEX	= args.n-1
 SRC_DATA_NAME	= SRC_DATA_NAMES[SRC_DATA_INDEX]
 #SRC_DATA_DATESTR = '-'.join(SRC_DATA_NAME.split('_')[1].split('-')[:-1])
 SRC_DATA_LOC	= '/media/ramdisk/' + SRC_DATA_NAME + '/';
-SRC_DATA_SUMMARY = '/home/luke/Dropbox/Grad School/1801_PS/' \
+SRC_DATA_SUMMARY = '/home/luke/Documents/GradSchool/1801_PS/' \
 	'2018-05_Testing/results_plot/dat_clean/' + SRC_DATA_NAME + '_sum.json';
 
 if args.polar:
